@@ -7,9 +7,9 @@ spring:
 
   # 数据库配置
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/ai_talk?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: root
-    password: root
+    url: jdbc:mysql://${mysql.host:127.0.0.1}:${mysql.port:3306}/ai_talk?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: ${mysql.username:root}
+    password: ${mysql.password:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # 文件上传配置
@@ -33,10 +33,10 @@ mybatis-plus:
 
 # Elasticsearch配置
 elasticsearch:
-  host: localhost
-  port: 9200
-  username: elastic
-  password: your_es_password
+  host: ${ES_HOST:127.0.0.1}
+  port: ${ES_PORT:9200}
+  username: ${ES_USERNAME:}
+  password: ${ES_PASSWORD:}
 
 # 文件存储路径
 file:
