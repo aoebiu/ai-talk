@@ -82,6 +82,7 @@
                 <version>${langchain4j.other.version}</version>
             </dependency>
 
+            <!-- LangChain4j onnx scoring -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-onnx-scoring</artifactId>
