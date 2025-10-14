@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static info.mengnan.aitalk.server.common.MessageRole.USER;
+import static info.mengnan.aitalk.server.param.common.MessageRole.USER;
 
 /**
  * 聊天历史压缩服务

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static info.mengnan.aitalk.server.common.MessageRole.*;
+import static info.mengnan.aitalk.server.param.common.MessageRole.*;
 
 @Component
 @RequiredArgsConstructor

@@ -11,6 +11,7 @@ public record AssembledModels(String name,  // 模型名称
                               String contentInjectorPrompt, // 提示词模板
                               Integer maxResults,  // 最大检索数
                               Double minScore, // 检索最小相似度分数
+                              Boolean inDB,
                               ChatApiKey chatModel,
                               ChatApiKey streamingChatModel,
                               ChatApiKey embeddingModel,

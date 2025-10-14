@@ -9,7 +9,7 @@ import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.service.*;
 import info.mengnan.aitalk.repository.entity.ChatApiKey;
 import info.mengnan.aitalk.repository.service.ChatApiKeyService;
-import info.mengnan.aitalk.server.common.ModelType;
+import info.mengnan.aitalk.server.param.common.ModelType;
 import info.mengnan.aitalk.server.rag.container.RagContainer;
 import info.mengnan.aitalk.server.rag.container.factory.ModelFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -18,9 +18,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -46,7 +44,12 @@ public class ModelRegistry implements InitializingBean {
      */
     @Override
     public void afterPropertiesSet() {
+        Set<String> validModelTypes = Arrays.stream(ModelType.values())
+                .map(Enum::name)
+                .collect(Collectors.toSet());
+
         Map<ModelType, List<ChatApiKey>> apiKeyMap = chatApiKeyService.findAll().stream()
+                .filter(e -> validModelTypes.contains(e.getKeyType().toUpperCase(Locale.ROOT)))
                 .collect(Collectors.groupingBy(e -> ModelType.valueOf(e.getKeyType().toUpperCase(Locale.ROOT))));
 
         for (Map.Entry<ModelType, List<ChatApiKey>> entry : apiKeyMap.entrySet()) {
