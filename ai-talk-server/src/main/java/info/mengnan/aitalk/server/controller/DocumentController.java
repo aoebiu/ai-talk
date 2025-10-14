@@ -1,6 +1,6 @@
 package info.mengnan.aitalk.server.controller;
 
-import info.mengnan.aitalk.server.common.R;
+import info.mengnan.aitalk.server.param.common.R;
 import info.mengnan.aitalk.server.content.DocumentEmbedding;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

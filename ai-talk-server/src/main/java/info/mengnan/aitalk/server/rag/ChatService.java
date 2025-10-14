@@ -20,17 +20,17 @@ import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
-import info.mengnan.aitalk.server.common.ChatRequest;
+import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
+import info.mengnan.aitalk.server.param.common.ChatRequest;
 import info.mengnan.aitalk.server.rag.container.RagContainer;
 import info.mengnan.aitalk.repository.entity.ChatOption;
 import info.mengnan.aitalk.server.rag.container.AssembledModels;
 import info.mengnan.aitalk.server.rag.container.assemble.AssembledModelsConstruct;
 import info.mengnan.aitalk.server.rag.container.assemble.ModelRegistry.*;
+import info.mengnan.aitalk.server.rag.handler.StreamingResponseHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -54,13 +54,18 @@ public class ChatService {
             new ThreadPoolExecutor.CallerRunsPolicy());
 
     /**
-     * 流式RAG对话 - 使用Flux返回响应流
+     * 流式RAG对话 - 使用回调处理器,与响应式框架解耦
+     *
+     * @param chatRequest 聊天请求
+     * @param handler 流式响应处理器
+     * @throws IllegalArgumentException 如果找不到对应的聊天配置
      */
-    public Flux<String> chatStreaming(ChatRequest chatRequest) {
+    public void chatStreaming(ChatRequest chatRequest, StreamingResponseHandler handler) {
         Long optionId = chatRequest.getOptionId();
         ChatOption chatOption = assembledChatModelsService.findChatOption(optionId);
         if (chatOption == null || !chatOption.getEnabled()) {
-            return Flux.error(new IllegalArgumentException("找不到对应的聊天配置，optionId: " + optionId));
+            handler.onError(new IllegalArgumentException("找不到对应的聊天配置,optionId: " + optionId));
+            return;
         }
 
         AssembledModels assembledModels = assembledChatModelsService.assemble(chatOption);
@@ -68,29 +73,32 @@ public class ChatService {
 
         String sessionId = chatRequest.getSessionId();
 
-        return Flux.create(sink -> {
-
+        try {
             TokenStream tokenStream = assistantUnique.chatStreaming(sessionId, chatRequest.getMessage());
 
             tokenStream.onPartialResponse(token -> {
-                        if (!sink.isCancelled()) {
-                            sink.next(token);
+                        if (!handler.isCancelled()) {
+                            handler.onToken(token);
                         }
                     })
                     .onCompleteResponse(response -> {
-                        log.info("流式响应完成,sessionId: {}, 完整响应: {}", sessionId, response);
-                        if (!sink.isCancelled()) {
-                            sink.complete();
+                        String completeText = response.aiMessage().text();
+                        log.info("流式响应完成,sessionId: {}, 响应长度: {}", sessionId, completeText.length());
+                        if (!handler.isCancelled()) {
+                            handler.onComplete(completeText);
                         }
                     })
                     .onError(error -> {
-                        log.error("生成响应失败", error);
-                        if (!sink.isCancelled()) {
-                            sink.error(error);
+                        log.error("生成响应失败,sessionId: {}", sessionId, error);
+                        if (!handler.isCancelled()) {
+                            handler.onError(error);
                         }
                     })
                     .start();
-        });
+        } catch (Exception e) {
+            log.error("启动流式响应失败,sessionId: {}", sessionId, e);
+            handler.onError(e);
+        }
     }
 
     /**
@@ -165,7 +173,7 @@ public class ChatService {
                 .chatMemoryProvider(memoryId -> MessageWindowChatMemory.builder()
                         .id(memoryId)
                         .maxMessages(assembledModels.maxMessages())
-                        .chatMemoryStore(chatMemoryStore)
+                        .chatMemoryStore(assembledModels.inDB() ? chatMemoryStore : new InMemoryChatMemoryStore())
                         .build())
                 .build();
     }

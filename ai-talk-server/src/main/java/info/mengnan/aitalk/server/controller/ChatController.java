@@ -1,10 +1,12 @@
 package info.mengnan.aitalk.server.controller;
 
-import info.mengnan.aitalk.server.common.ChatRequest;
-import info.mengnan.aitalk.server.common.R;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
 import info.mengnan.aitalk.repository.service.ChatMessageService;
+import info.mengnan.aitalk.server.param.common.ChatRequest;
+import info.mengnan.aitalk.server.param.common.R;
 import info.mengnan.aitalk.server.rag.ChatService;
+import info.mengnan.aitalk.server.rag.handler.FluxStreamingResponseHandler;
+import info.mengnan.aitalk.server.rag.handler.StreamingResponseHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -13,7 +15,8 @@ import reactor.core.publisher.Flux;
 
 import java.util.List;
 
-import static info.mengnan.aitalk.server.common.MessageRole.*;
+import static info.mengnan.aitalk.server.param.common.MessageRole.*;
+
 
 @Slf4j
 @RestController
@@ -25,16 +28,31 @@ public class ChatController {
     private final ChatMessageService chatMessageService;
 
     /**
-     * 流式对话接口
+     * 流式对话接口 - 使用 HTTP Streaming (application/stream+json)
      */
-    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/stream", produces = MediaType.APPLICATION_NDJSON_VALUE)
     public Flux<String> chatStream(@RequestBody ChatRequest request) {
         String sessionId = request.getSessionId();
         if (sessionId == null || sessionId.isEmpty()) {
-            return null;
+            return Flux.error(new IllegalArgumentException("sessionId 不能为空"));
         }
+
         log.info("收到流式对话请求 - sessionId: {}, message: {}", request.getSessionId(), request.getMessage());
-        return chatService.chatStreaming(request);
+        return streamResponse(request);
+    }
+
+    /**
+     * 流式响应 - 返回纯文本流
+     * 使用回调接口将 ChatService 的响应转换为 Flux
+     */
+    private Flux<String> streamResponse(ChatRequest chatRequest) {
+        return Flux.create(sink -> {
+            // 创建回调处理器,将回调转换为 Flux 事件
+            StreamingResponseHandler handler = new FluxStreamingResponseHandler(sink, chatRequest.getSessionId());
+
+            // 调用 ChatService 的流式方法
+            chatService.chatStreaming(chatRequest, handler);
+        });
     }
 
     /**

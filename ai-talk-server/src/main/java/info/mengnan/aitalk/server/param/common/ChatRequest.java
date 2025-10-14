@@ -1,4 +1,4 @@
-package info.mengnan.aitalk.server.common;
+package info.mengnan.aitalk.server.param.common;
 
 import lombok.Data;
 
@@ -8,5 +8,6 @@ public class ChatRequest {
     private String sessionId;
     private Long optionId;
     private String message;
+    private boolean inDB = true;
 
 }

@@ -6,7 +6,7 @@ import info.mengnan.aitalk.repository.entity.ChatOptionApiKeyRel;
 import info.mengnan.aitalk.repository.service.ChatApiKeyService;
 import info.mengnan.aitalk.repository.service.ChatOptionApiKeyRelService;
 import info.mengnan.aitalk.repository.service.ChatOptionService;
-import info.mengnan.aitalk.server.common.ModelType;
+import info.mengnan.aitalk.server.param.common.ModelType;
 import info.mengnan.aitalk.server.rag.container.AssembledModels;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -78,6 +78,7 @@ public class AssembledModelsConstruct {
                 chatOption.getContentInjectorPrompt(),
                 chatOption.getMaxResults(),
                 chatOption.getMinScore(),
+                chatOption.getInDB(),
                 chatModel,
                 streamingChatModel,
                 embeddingModel,

@@ -9,7 +9,7 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.rag.query.transformer.QueryTransformer;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import info.mengnan.aitalk.server.common.ModelType;
+import info.mengnan.aitalk.server.param.common.ModelType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

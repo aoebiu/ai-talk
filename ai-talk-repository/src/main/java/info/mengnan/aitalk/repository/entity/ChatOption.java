@@ -60,6 +60,9 @@ public class ChatOption {
      */
     private Double minScore;
 
+    @TableField("in_DB")
+    private Boolean inDB;
+
     /**
      * 备注
      */
