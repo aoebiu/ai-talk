@@ -22,14 +22,14 @@ spring:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-  global-config:
-    db-config:
-      id-type: auto
-      logic-delete-field: deleted
-      logic-delete-value: 1
-      logic-not-delete-value: 0
   mapper-locations: classpath*:/mapper/**/*.xml
+
+logging:
+  level:
+    info.mengnan.aitalk.repository.mapper: OFF
+    info.mengnan.aitalk.server.config.info.mengnan.aitalk.repository.config.SqlLogInterceptor: INFO
+    org.springframework.web: INFO
+    info.mengnan.aitalk: INFO
 
 # Elasticsearch配置
 elasticsearch:
