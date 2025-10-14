@@ -32,11 +32,11 @@ logging:
     info.mengnan.aitalk: INFO
 
 # Elasticsearch配置
-elasticsearch:
-  host: ${ES_HOST:127.0.0.1}
-  port: ${ES_PORT:9200}
-  username: ${ES_USERNAME:}
-  password: ${ES_PASSWORD:}
+#elasticsearch:
+#  host: ${ES_HOST:127.0.0.1}
+#  port: ${ES_PORT:9200}
+#  username: ${ES_USERNAME:}
+#  password: ${ES_PASSWORD:}
 
 # 文件存储路径
 file:

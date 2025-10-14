@@ -1,11 +1,13 @@
 package info.mengnan.aitalk.server.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import info.mengnan.aitalk.server.param.common.ChatRequest;
+import info.mengnan.aitalk.rag.container.AssembledModels;
+import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
+import info.mengnan.aitalk.server.param.ChatRequest;
+import info.mengnan.aitalk.rag.ChatService;
+import info.mengnan.aitalk.server.handler.OpenAiStreamingResponseHandler;
 import info.mengnan.aitalk.server.param.openai.OpenApiChatRequest;
-import info.mengnan.aitalk.server.rag.ChatService;
-import info.mengnan.aitalk.server.rag.handler.OpenAiStreamingResponseHandler;
-import info.mengnan.aitalk.server.rag.handler.StreamingResponseHandler;
+import info.mengnan.aitalk.server.service.RagAdapterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -27,6 +29,7 @@ public class OpenAiCompatibleController {
 
     private final ChatService chatService;
     private final ObjectMapper objectMapper;
+    private final RagAdapterService ragAdapterService;
 
     // TODO 全局配置中获取
     private final static Long DEFAULT_OPTION_ID = 1L;
@@ -64,10 +67,18 @@ public class OpenAiCompatibleController {
         long timestamp = System.currentTimeMillis() / 1000;
 
         return Flux.<String>create(sink -> {
-            StreamingResponseHandler handler = new OpenAiStreamingResponseHandler(
-                    sink, objectMapper, requestId, timestamp, model);
+            try {
+                // 从数据库查询并组装 AssembledModels
+                AssembledModels assembledModels = ragAdapterService.assembleModels(chatRequest.getOptionId());
 
-            chatService.chatStreaming(chatRequest, handler);
+                StreamingResponseHandler handler = new OpenAiStreamingResponseHandler(
+                        sink, objectMapper, requestId, timestamp, model);
+
+                chatService.chatStreaming(chatRequest.getSessionId(),chatRequest.getMessage(), handler, assembledModels);
+            } catch (Exception e) {
+                log.error("组装模型配置失败", e);
+                sink.error(e);
+            }
         })
         .delayElements(Duration.ofMillis(1));
     }
