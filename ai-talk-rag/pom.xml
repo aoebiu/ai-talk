@@ -9,38 +9,20 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>ai-talk-server</artifactId>
+    <artifactId>ai-talk-rag</artifactId>
     <packaging>jar</packaging>
-    <name>ai-talk-server</name>
-    <description>Web server for ai-talk project</description>
+    <name>ai-talk-rag</name>
+    <description>RAG module for ai-talk project</description>
+
+    <properties>
+        <java.version>17</java.version>
+    </properties>
 
     <dependencies>
         <!-- Internal Module -->
         <dependency>
             <groupId>info.mengnan</groupId>
             <artifactId>ai-talk-common</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>info.mengnan</groupId>
-            <artifactId>ai-talk-repository</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>info.mengnan</groupId>
-            <artifactId>ai-talk-rag</artifactId>
-        </dependency>
-
-        <!-- Spring Boot Starters -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
-        <!-- Spring WebFlux for Reactive Support -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
         <!-- LangChain4j Core -->
@@ -52,10 +34,6 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-core</artifactId>
         </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-spring-boot-starter</artifactId>
-        </dependency>
 
         <!-- LangChain4j DashScope (aliyun) -->
         <dependency>
@@ -63,6 +41,7 @@
             <artifactId>langchain4j-community-dashscope</artifactId>
         </dependency>
 
+        <!-- LangChain4j onnx scoring -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-onnx-scoring</artifactId>
@@ -96,25 +75,6 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
-
-        <!-- Test -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <mainClass>info.mengnan.aitalk.server.AiTalkApplication</mainClass>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 
 </project>

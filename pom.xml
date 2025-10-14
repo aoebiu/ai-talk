@@ -11,7 +11,9 @@
     <description>ai-talk parent project</description>
 
     <modules>
+        <module>ai-talk-common</module>
         <module>ai-talk-repository</module>
+        <module>ai-talk-rag</module>
         <module>ai-talk-server</module>
     </modules>
 
@@ -42,7 +44,17 @@
             <!-- Project Modules -->
             <dependency>
                 <groupId>info.mengnan</groupId>
+                <artifactId>ai-talk-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>info.mengnan</groupId>
                 <artifactId>ai-talk-repository</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>info.mengnan</groupId>
+                <artifactId>ai-talk-rag</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

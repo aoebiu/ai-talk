@@ -9,10 +9,9 @@ import dev.langchain4j.data.document.parser.apache.poi.ApachePoiDocumentParser;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import info.mengnan.aitalk.server.rag.container.RagContainer;
-import info.mengnan.aitalk.server.rag.container.assemble.DynamicEmbeddingStoreRegistry;
+import info.mengnan.aitalk.rag.container.RagContainer;
+import info.mengnan.aitalk.rag.container.assemble.DynamicEmbeddingStoreRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +25,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Service

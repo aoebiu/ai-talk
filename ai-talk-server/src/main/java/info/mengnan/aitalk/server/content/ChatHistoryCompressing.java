@@ -5,17 +5,18 @@ import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.query.Query;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
-import info.mengnan.aitalk.server.rag.container.RagContainer;
+import info.mengnan.aitalk.rag.container.RagContainer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static info.mengnan.aitalk.server.param.common.MessageRole.USER;
+import static info.mengnan.aitalk.common.param.MessageRole.USER;
 
 /**
  * 聊天历史压缩服务
@@ -25,7 +26,7 @@ import static info.mengnan.aitalk.server.param.common.MessageRole.USER;
 @Component
 public class ChatHistoryCompressing {
 
-    private final ChatModel chatModel;
+    private final RagContainer ragContainer;
     public static final PromptTemplate DEFAULT_PROMPT_TEMPLATE = PromptTemplate.from(
             """
                     请将以下对话内容进行总结和压缩，保留关键信息和上下文。总结应该简洁但要包含重要的讨论点和结论。
@@ -38,18 +39,24 @@ public class ChatHistoryCompressing {
     public ChatHistoryCompressing(@Qualifier("compressingPrompt")
                                   @Autowired(required = false)
                                   PromptTemplate promptTemplate,
-                                  RagContainer ragContainer) {
+                                  @Lazy RagContainer ragContainer) {
         if (promptTemplate == null) {
             promptTemplate = DEFAULT_PROMPT_TEMPLATE;
         }
         this.promptTemplate = promptTemplate;
-        chatModel = ragContainer.getChatModel("gpt-3.5-turbo");
+        this.ragContainer = ragContainer;
+    }
+
+    /**
+     * 懒加载获取ChatModel，避免循环依赖
+     */
+    private ChatModel getChatModel() {
+        return ragContainer.getChatModel("gpt-3.5-turbo");
     }
 
     /**
      * 压缩会话历史
      *
-     * @param sessionId          会话ID
      * @param messagesToCompress 需要压缩的消息列表
      * @return 压缩后的摘要文本
      */
@@ -62,7 +69,7 @@ public class ChatHistoryCompressing {
         Prompt prompt = createPrompt(Query.from(conversationText));
 
         // 调用 LLM 进行总结
-        return chatModel.chat(prompt.text());
+        return getChatModel().chat(prompt.text());
 
     }
 

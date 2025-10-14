@@ -1,12 +1,14 @@
 package info.mengnan.aitalk.server.controller;
 
+import info.mengnan.aitalk.rag.container.AssembledModels;
+import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
 import info.mengnan.aitalk.repository.service.ChatMessageService;
-import info.mengnan.aitalk.server.param.common.ChatRequest;
-import info.mengnan.aitalk.server.param.common.R;
-import info.mengnan.aitalk.server.rag.ChatService;
-import info.mengnan.aitalk.server.rag.handler.FluxStreamingResponseHandler;
-import info.mengnan.aitalk.server.rag.handler.StreamingResponseHandler;
+import info.mengnan.aitalk.server.param.ChatRequest;
+import info.mengnan.aitalk.server.param.R;
+import info.mengnan.aitalk.rag.ChatService;
+import info.mengnan.aitalk.server.handler.FluxStreamingResponseHandler;
+import info.mengnan.aitalk.server.service.RagAdapterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -15,7 +17,7 @@ import reactor.core.publisher.Flux;
 
 import java.util.List;
 
-import static info.mengnan.aitalk.server.param.common.MessageRole.*;
+import static info.mengnan.aitalk.common.param.MessageRole.*;
 
 
 @Slf4j
@@ -26,6 +28,7 @@ public class ChatController {
 
     private final ChatService chatService;
     private final ChatMessageService chatMessageService;
+    private final RagAdapterService ragAdapterService;
 
     /**
      * 流式对话接口 - 使用 HTTP Streaming (application/stream+json)
@@ -47,11 +50,19 @@ public class ChatController {
      */
     private Flux<String> streamResponse(ChatRequest chatRequest) {
         return Flux.create(sink -> {
-            // 创建回调处理器,将回调转换为 Flux 事件
-            StreamingResponseHandler handler = new FluxStreamingResponseHandler(sink, chatRequest.getSessionId());
+            try {
+                // 组装 AssembledModels
+                AssembledModels assembledModels = ragAdapterService.assembleModels(chatRequest.getOptionId());
 
-            // 调用 ChatService 的流式方法
-            chatService.chatStreaming(chatRequest, handler);
+                // 创建回调处理器
+                StreamingResponseHandler handler = new FluxStreamingResponseHandler(sink, chatRequest.getSessionId());
+
+                // 调用 ChatService 的流式方法
+                chatService.chatStreaming(chatRequest.getSessionId(), chatRequest.getMessage(), handler, assembledModels);
+            } catch (Exception e) {
+                log.error("组装模型配置失败", e);
+                sink.error(e);
+            }
         });
     }
 

@@ -7,7 +7,7 @@ import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
 @MapperScan("info.mengnan.aitalk.repository.mapper")
-@ComponentScan(basePackages = {"info.mengnan.aitalk.*"})
+@ComponentScan(basePackages = {"info.mengnan.aitalk"})
 public class AiTalkApplication {
 
     public static void main(String[] args) {
