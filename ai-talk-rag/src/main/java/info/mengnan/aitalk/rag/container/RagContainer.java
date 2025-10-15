@@ -69,7 +69,7 @@ public class RagContainer {
     }
 
     public void registerScoringModel(String modelName, ScoringModel model) {
-        String key = buildKey(ModelType.EMBEDDING, modelName);
+        String key = buildKey(ModelType.SCORING, modelName);
         scoringModelMap.put(key, model);
     }
 

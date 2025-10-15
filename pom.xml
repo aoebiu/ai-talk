@@ -94,10 +94,10 @@
                 <version>${langchain4j.other.version}</version>
             </dependency>
 
-            <!-- LangChain4j onnx scoring -->
+            <!-- LangChain4j cohere -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
-                <artifactId>langchain4j-onnx-scoring</artifactId>
+                <artifactId>langchain4j-cohere</artifactId>
                 <version>${langchain4j.other.version}</version>
             </dependency>
 

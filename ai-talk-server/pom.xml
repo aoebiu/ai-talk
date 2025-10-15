@@ -46,32 +46,7 @@
         <!-- LangChain4j Core -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-spring-boot-starter</artifactId>
-        </dependency>
-
-        <!-- LangChain4j DashScope (aliyun) -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-community-dashscope</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-onnx-scoring</artifactId>
-        </dependency>
-
-        <!-- LangChain4j Elasticsearch -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-elasticsearch</artifactId>
         </dependency>
 
         <!-- LangChain4j Document Parsers -->
@@ -84,11 +59,6 @@
             <artifactId>langchain4j-document-parser-apache-poi</artifactId>
         </dependency>
 
-        <!-- Elasticsearch Java Client -->
-        <dependency>
-            <groupId>co.elastic.clients</groupId>
-            <artifactId>elasticsearch-java</artifactId>
-        </dependency>
 
         <!-- Lombok -->
         <dependency>

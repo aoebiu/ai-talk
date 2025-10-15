@@ -38,10 +38,10 @@ public class ModelFactory {
         ollamaModels.put("embedding", "dev.langchain4j.model.ollama.OllamaEmbeddingModel");
         MODEL_CLASS_MAPPING.put(ModelProvider.OLLAMA, ollamaModels);
 
-        // ONNX Scoring Models
-        Map<String, String> onnxModels = new HashMap<>();
-        onnxModels.put("scoring", "dev.langchain4j.model.scoring.onnx.OnnxScoringModel");
-        MODEL_CLASS_MAPPING.put(ModelProvider.ONNX, onnxModels);
+        // cohere Scoring Models
+        Map<String, String> cohereModel = new HashMap<>();
+        cohereModel.put("scoring", "dev.langchain4j.model.cohere.CohereScoringModel");
+        MODEL_CLASS_MAPPING.put(ModelProvider.COHERE, cohereModel);
 
     }
 

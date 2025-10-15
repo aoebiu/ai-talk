@@ -11,7 +11,7 @@ public enum ModelProvider {
     DASHSCOPE("Qwen", "阿里云DashScope"),
     OPENAI("OpenAI", "OpenAI"),
     OLLAMA("Ollama", "Ollama"),
-    ONNX("ONNX", "ONNX Runtime");
+    COHERE("cohere", "cohere");
 
     private final String code;
     private final String name;
