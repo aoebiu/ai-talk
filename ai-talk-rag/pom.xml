@@ -41,10 +41,10 @@
             <artifactId>langchain4j-community-dashscope</artifactId>
         </dependency>
 
-        <!-- LangChain4j onnx scoring -->
+        <!-- LangChain4j cohere scoring -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-onnx-scoring</artifactId>
+            <artifactId>langchain4j-cohere</artifactId>
         </dependency>
 
         <!-- LangChain4j Elasticsearch -->
