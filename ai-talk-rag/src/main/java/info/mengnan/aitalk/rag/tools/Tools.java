@@ -1,10 +1,10 @@
 package info.mengnan.aitalk.rag.tools;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.service.tool.ToolExecutor;
+import info.mengnan.aitalk.common.json.JSONObject;
+import info.mengnan.aitalk.common.util.JSONUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
@@ -19,7 +19,6 @@ import java.util.Map;
 @Slf4j
 public class Tools {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
     private final Context context;
 
     public Tools() {
@@ -99,23 +98,22 @@ public class Tools {
                 }
 
                 // 解析参数
-                JsonNode jsonNode = objectMapper.readTree(request.arguments());
+                JSONObject jsonObject = JSONUtil.parseObj(request.arguments());
                 log.info("Executing tool: {} with arguments: {}", desc.getName(), request.arguments());
 
                 // 构建包装的 JavaScript 代码，将参数注入到执行环境中
                 String executeScript = desc.getExecute().trim();
                 String wrappedScript;
-
                 // 检查脚本是否定义了 execute 函数
                 if (executeScript.contains("function execute")) {
                     wrappedScript = String.format(
                             """
                                     (function() {
-                                      const params = "%s";
+                                      const params = %s;
                                       %s
                                       return execute(params);
                                     })();""",
-                            objectMapper.convertValue(jsonNode, Map.class),
+                            JSONUtil.toJsonStr(jsonObject),
                             executeScript
                     );
                 } else {
@@ -123,10 +121,10 @@ public class Tools {
                     wrappedScript = String.format(
                             """
                                     (function() {
-                                      const params = "%s";
+                                      const params = %s;
                                       return (%s);
                                     })();""",
-                            objectMapper.convertValue(jsonNode, Map.class),
+                            JSONUtil.toJsonStr(jsonObject),
                         executeScript
                     );
                 }
@@ -146,10 +144,10 @@ public class Tools {
                     return result.asString();
                 } else if (result.hasArrayElements()) {
                     // 处理数组返回值
-                    return objectMapper.writeValueAsString(result.as(Object.class));
+                    return JSONUtil.parseArray(result).toString();
                 } else if (result.hasMembers()) {
                     // 处理对象返回值
-                    return objectMapper.writeValueAsString(result.as(Object.class));
+                    return JSONUtil.parseObj(result).toString();
                 } else {
                     return result.toString();
                 }
