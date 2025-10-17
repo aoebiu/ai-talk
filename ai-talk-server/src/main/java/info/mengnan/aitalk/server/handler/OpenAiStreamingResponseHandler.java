@@ -1,6 +1,6 @@
 package info.mengnan.aitalk.server.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import info.mengnan.aitalk.common.util.JSONUtil;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
 import info.mengnan.aitalk.server.param.openai.OpenApiChatStreamResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -16,15 +16,13 @@ import java.util.List;
 public class OpenAiStreamingResponseHandler implements StreamingResponseHandler {
 
     private final FluxSink<String> sink;
-    private final ObjectMapper objectMapper;
     private final String requestId;
     private final long timestamp;
     private final String model;
 
-    public OpenAiStreamingResponseHandler(FluxSink<String> sink, ObjectMapper objectMapper,
+    public OpenAiStreamingResponseHandler(FluxSink<String> sink,
                                          String requestId, long timestamp, String model) {
         this.sink = sink;
-        this.objectMapper = objectMapper;
         this.requestId = requestId;
         this.timestamp = timestamp;
         this.model = model;
@@ -82,7 +80,7 @@ public class OpenAiStreamingResponseHandler implements StreamingResponseHandler 
      */
     private String toFormat(OpenApiChatStreamResponse response) {
         try {
-            String json = objectMapper.writeValueAsString(response);
+            String json = JSONUtil.toJsonStr(response);
             return "data: " + json + "\n\n";
         } catch (Exception e) {
             log.error("JSON 序列化失败", e);

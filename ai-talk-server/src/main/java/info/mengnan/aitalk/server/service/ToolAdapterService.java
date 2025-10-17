@@ -1,8 +1,9 @@
 package info.mengnan.aitalk.server.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.service.tool.ToolExecutor;
+import info.mengnan.aitalk.common.json.JSONObject;
+import info.mengnan.aitalk.common.util.JSONUtil;
 import info.mengnan.aitalk.rag.tools.ToolDescription;
 import info.mengnan.aitalk.rag.tools.Tools;
 import info.mengnan.aitalk.repository.entity.ChatToolDescription;
@@ -24,7 +25,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ToolAdapterService {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
     private final Tools tools;
     private final ToolDescriptionService toolDescriptionService;
 
@@ -46,47 +46,19 @@ public class ToolAdapterService {
     }
 
     /**
-     * 将数据库实体转换为DTO
+     * 将数据库实体转换
      */
     private ToolDescription convertToDescription(ChatToolDescription entity) {
-        ToolDescription dto = new ToolDescription();
-        dto.setName(entity.getName());
-        dto.setDescription(entity.getDescription());
-        dto.setProperty(parseJsonToMap(entity.getProperty()));
-        dto.setRequired(parseJsonToList(entity.getRequired()));
-        dto.setExecute(entity.getExecute());
-        return dto;
-    }
-
-    /**
-     * 解析JSON对象字符串为Map
-     */
-    private Map<String, String> parseJsonToMap(String json) {
-        if (json == null || json.trim().isEmpty()) {
-            return Map.of();
-        }
-        try {
-            return mapper.readValue(json,
-                    mapper.getTypeFactory().constructMapType(Map.class, String.class, String.class));
-        } catch (Exception e) {
-            log.error("Failed to parse JSON to Map: {}", json, e);
-            return Map.of();
-        }
-    }
-
-    /**
-     * 解析JSON数组字符串为List
-     */
-    private List<String> parseJsonToList(String json) {
-        if (json == null || json.trim().isEmpty()) {
-            return List.of();
-        }
-        try {
-            return mapper.readValue(json,
-                    mapper.getTypeFactory().constructCollectionType(List.class, String.class));
-        } catch (Exception e) {
-            log.error("Failed to parse JSON to List: {}", json, e);
-            return List.of();
-        }
+        ToolDescription description = new ToolDescription();
+        description.setName(entity.getName());
+        description.setDescription(entity.getDescription());
+        description.setProperty(JSONUtil.parseObj(entity.getProperty()).entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> String.valueOf(e.getValue())
+                )));
+        description.setRequired(JSONUtil.toList(entity.getRequired(), String.class));
+        description.setExecute(entity.getExecute());
+        return description;
     }
 }

@@ -1,6 +1,5 @@
 package info.mengnan.aitalk.server.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.service.tool.ToolExecutor;
 import info.mengnan.aitalk.rag.container.AssembledModels;
@@ -32,7 +31,6 @@ import java.util.UUID;
 public class OpenAiCompatibleController {
 
     private final ChatService chatService;
-    private final ObjectMapper objectMapper;
     private final RagAdapterService ragAdapterService;
     private final ToolAdapterService toolAdapterService;
 
@@ -78,7 +76,7 @@ public class OpenAiCompatibleController {
                 Map<ToolSpecification, ToolExecutor> toolMap = toolAdapterService.dynamicTools();
 
                 StreamingResponseHandler handler = new OpenAiStreamingResponseHandler(
-                        sink, objectMapper, requestId, timestamp, model);
+                        sink, requestId, timestamp, model);
 
                 chatService.chatStreaming(chatRequest.getSessionId(),chatRequest.getMessage(), handler, assembledModels,toolMap);
             } catch (Exception e) {
