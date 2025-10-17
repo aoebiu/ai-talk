@@ -1,5 +1,7 @@
 package info.mengnan.aitalk.server.controller;
 
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.service.tool.ToolExecutor;
 import info.mengnan.aitalk.rag.container.AssembledModels;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
@@ -9,6 +11,7 @@ import info.mengnan.aitalk.server.param.R;
 import info.mengnan.aitalk.rag.ChatService;
 import info.mengnan.aitalk.server.handler.FluxStreamingResponseHandler;
 import info.mengnan.aitalk.server.service.RagAdapterService;
+import info.mengnan.aitalk.server.service.ToolAdapterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.util.Map;
 
 import static info.mengnan.aitalk.common.param.MessageRole.*;
 
@@ -29,6 +33,7 @@ public class ChatController {
     private final ChatService chatService;
     private final ChatMessageService chatMessageService;
     private final RagAdapterService ragAdapterService;
+    private final ToolAdapterService toolAdapterService;
 
     /**
      * 流式对话接口 - 使用 HTTP Streaming (application/stream+json)
@@ -53,12 +58,12 @@ public class ChatController {
             try {
                 // 组装 AssembledModels
                 AssembledModels assembledModels = ragAdapterService.assembleModels(chatRequest.getOptionId());
-
+                Map<ToolSpecification, ToolExecutor> toolMap = toolAdapterService.dynamicTools();
                 // 创建回调处理器
                 StreamingResponseHandler handler = new FluxStreamingResponseHandler(sink, chatRequest.getSessionId());
 
                 // 调用 ChatService 的流式方法
-                chatService.chatStreaming(chatRequest.getSessionId(), chatRequest.getMessage(), handler, assembledModels);
+                chatService.chatStreaming(chatRequest.getSessionId(), chatRequest.getMessage(), handler, assembledModels, toolMap);
             } catch (Exception e) {
                 log.error("组装模型配置失败", e);
                 sink.error(e);

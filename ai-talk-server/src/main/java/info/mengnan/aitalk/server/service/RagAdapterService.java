@@ -46,7 +46,7 @@ public class RagAdapterService {
             throw new IllegalArgumentException("找不到对应的聊天配置或配置未启用,optionId: " + optionId);
         }
 
-        // 2. 转换为 ChatOptionConfig DTO
+        // 2. 转换为 ChatOptionConfig
         ChatOptionConfig chatOptionConfig = convertToChatOptionConfig(chatOption);
 
         // 3. 查询该选项关联的所有模型

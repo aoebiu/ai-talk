@@ -1,5 +1,6 @@
 package info.mengnan.aitalk.rag;
 
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
@@ -18,6 +19,7 @@ import dev.langchain4j.rag.query.router.QueryRouter;
 import dev.langchain4j.rag.query.transformer.DefaultQueryTransformer;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.TokenStream;
+import dev.langchain4j.service.tool.ToolExecutor;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
@@ -39,7 +41,7 @@ public class ChatService {
     private final RagContainer ragContainer;
 
     public ChatService(ChatMemoryStore chatMemoryStore,
-                      RagContainer ragContainer) {
+                       RagContainer ragContainer) {
         this.chatMemoryStore = chatMemoryStore;
         this.ragContainer = ragContainer;
     }
@@ -52,21 +54,24 @@ public class ChatService {
 
     /**
      * 流式RAG对话 - 使用回调处理器
-     * @param sessionId 会话id
-     * @param message 消息
-     * @param handler 流式响应处理器
+     *
+     * @param sessionId       会话id
+     * @param message         消息
+     * @param handler         流式响应处理器
      * @param assembledModels 已组装好的模型配置
+     * @param toolMap
      */
     public void chatStreaming(String sessionId,
                               String message,
                               StreamingResponseHandler handler,
-                              AssembledModels assembledModels) {
+                              AssembledModels assembledModels,
+                              Map<ToolSpecification, ToolExecutor> toolMap) {
         if (assembledModels == null) {
             handler.onError(new IllegalArgumentException("AssembledModels cannot be null"));
             return;
         }
 
-        AssistantUnique assistantUnique = buildAssistantUnique(assembledModels);
+        AssistantUnique assistantUnique = buildAssistantUnique(assembledModels,toolMap);
 
         try {
             TokenStream tokenStream = assistantUnique.chatStreaming(sessionId, message);
@@ -99,7 +104,7 @@ public class ChatService {
     /**
      * 根据配置动态构建 AssistantUnique
      */
-    private AssistantUnique buildAssistantUnique(AssembledModels assembledModels) {
+    private AssistantUnique buildAssistantUnique(AssembledModels assembledModels, Map<ToolSpecification, ToolExecutor> toolMap) {
         AiServices<AssistantUnique> builder = AiServices.builder(AssistantUnique.class);
 
         if (assembledModels.rag()) {
@@ -137,12 +142,17 @@ public class ChatService {
                     assembledModels,
                     ragContainer.getEmbeddingModel(assembledModels.embeddingModel().getModelName()));
             QueryRouter queryRouter;
-            if (assembledModels.chatModel() != null) {
-                ChatModel chatModel = ragContainer.getChatModel(assembledModels.chatModel().getModelName());
-                queryRouter = new LanguageModelQueryRouter(chatModel, contentRetrieverMap);
+            if (contentRetrieverMap.isEmpty()) {
+                queryRouter = null;
             } else {
-                queryRouter = new DefaultQueryRouter(contentRetrieverMap.keySet());
+                if (assembledModels.chatModel() != null) {
+                    ChatModel chatModel = ragContainer.getChatModel(assembledModels.chatModel().getModelName());
+                    queryRouter = new LanguageModelQueryRouter(chatModel, contentRetrieverMap);
+                } else {
+                    queryRouter = new DefaultQueryRouter(contentRetrieverMap.keySet());
+                }
             }
+
             ragBuilder.queryRouter(queryRouter);
 
 
@@ -164,7 +174,7 @@ public class ChatService {
         }
 
         return builder
-                // .tools()
+                .tools(toolMap)
                 .chatMemoryProvider(memoryId -> MessageWindowChatMemory.builder()
                         .id(memoryId)
                         .maxMessages(assembledModels.maxMessages())
