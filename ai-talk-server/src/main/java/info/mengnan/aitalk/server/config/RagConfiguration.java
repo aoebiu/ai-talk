@@ -79,11 +79,16 @@ public class RagConfiguration {
             RagContainer ragContainer) {
         log.info("Creating and initializing DynamicEmbeddingStoreRegistry...");
         DynamicEmbeddingStoreRegistry registry = new DynamicEmbeddingStoreRegistry(
-            elasticsearchProperties,
-            ragContainer
+                elasticsearchProperties,
+                ragContainer
         );
-        registry.initialize();
-        log.info("DynamicEmbeddingStoreRegistry initialized successfully");
+        try {
+            registry.initialize();
+            log.info("DynamicEmbeddingStoreRegistry initialized successfully");
+            return registry;
+        } catch (Exception e) {
+            log.error("DynamicEmbeddingStoreRegistry initialized fail!");
+        }
         return registry;
     }
 
@@ -103,8 +108,8 @@ public class RagConfiguration {
     public ChatService chatService(ChatMemoryStore chatMemoryStore, RagContainer ragContainer) {
         log.info("Creating ChatService...");
         return new ChatService(
-            chatMemoryStore,
-            ragContainer
+                chatMemoryStore,
+                ragContainer
         );
     }
 

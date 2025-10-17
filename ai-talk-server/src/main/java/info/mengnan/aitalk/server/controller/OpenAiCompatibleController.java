@@ -1,6 +1,8 @@
 package info.mengnan.aitalk.server.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.service.tool.ToolExecutor;
 import info.mengnan.aitalk.rag.container.AssembledModels;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
 import info.mengnan.aitalk.server.param.ChatRequest;
@@ -8,6 +10,7 @@ import info.mengnan.aitalk.rag.ChatService;
 import info.mengnan.aitalk.server.handler.OpenAiStreamingResponseHandler;
 import info.mengnan.aitalk.server.param.openai.OpenApiChatRequest;
 import info.mengnan.aitalk.server.service.RagAdapterService;
+import info.mengnan.aitalk.server.service.ToolAdapterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -30,6 +34,7 @@ public class OpenAiCompatibleController {
     private final ChatService chatService;
     private final ObjectMapper objectMapper;
     private final RagAdapterService ragAdapterService;
+    private final ToolAdapterService toolAdapterService;
 
     // TODO 全局配置中获取
     private final static Long DEFAULT_OPTION_ID = 1L;
@@ -70,11 +75,12 @@ public class OpenAiCompatibleController {
             try {
                 // 从数据库查询并组装 AssembledModels
                 AssembledModels assembledModels = ragAdapterService.assembleModels(chatRequest.getOptionId());
+                Map<ToolSpecification, ToolExecutor> toolMap = toolAdapterService.dynamicTools();
 
                 StreamingResponseHandler handler = new OpenAiStreamingResponseHandler(
                         sink, objectMapper, requestId, timestamp, model);
 
-                chatService.chatStreaming(chatRequest.getSessionId(),chatRequest.getMessage(), handler, assembledModels);
+                chatService.chatStreaming(chatRequest.getSessionId(),chatRequest.getMessage(), handler, assembledModels,toolMap);
             } catch (Exception e) {
                 log.error("组装模型配置失败", e);
                 sink.error(e);
