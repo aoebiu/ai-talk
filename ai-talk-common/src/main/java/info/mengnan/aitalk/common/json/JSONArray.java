@@ -43,10 +43,10 @@ public class JSONArray implements List<Object> {
      * @param obj 对象
      */
     public JSONArray(Object obj) {
-        if (obj instanceof JSONArray) {
-            this.node = ((JSONArray) obj).node.deepCopy();
-        } else if (obj instanceof String) {
-            JsonNode parsedNode = JSONUtil.parseNode((String) obj);
+        if (obj instanceof JSONArray o) {
+            this.node = o.node.deepCopy();
+        } else if (obj instanceof String o) {
+            JsonNode parsedNode = JSONUtil.parseNode(o);
             if (!parsedNode.isArray()) {
                 throw new IllegalArgumentException("JSON string is not an array");
             }
@@ -125,10 +125,10 @@ public class JSONArray implements List<Object> {
             jsonNode = JSONUtil.valueToTree(value);
         } else if (value instanceof Boolean) {
             jsonNode = JSONUtil.valueToTree(value);
-        } else if (value instanceof JSONObject) {
-            jsonNode = ((JSONObject) value).getNode();
-        } else if (value instanceof JSONArray) {
-            jsonNode = ((JSONArray) value).node;
+        } else if (value instanceof JSONObject v) {
+            jsonNode = v.getNode();
+        } else if (value instanceof JSONArray v) {
+            jsonNode = v.node;
         } else {
             jsonNode = JSONUtil.valueToTree(value);
         }
