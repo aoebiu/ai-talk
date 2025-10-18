@@ -3,6 +3,7 @@ package info.mengnan.aitalk.rag.tools;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.service.tool.ToolExecutor;
+import info.mengnan.aitalk.common.http.HttpClients;
 import info.mengnan.aitalk.common.json.JSONObject;
 import info.mengnan.aitalk.common.util.JSONUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -21,11 +22,31 @@ public class Tools {
 
     private final Context context;
 
+    private static final String FUNCTION_EXECUTE_SCRIPT =
+            """
+                    (function() {
+                      const params = %s;
+                      %s
+                      return execute(params);
+                    })();
+                    """;
+
+    private static final String DEFAULT_EXECUTE_SCRIPT =
+            """
+                    (function() {
+                      const params = %s;
+                      return (%s);
+                    })();
+                    """;
+
     public Tools() {
-        // 创建 polyglot 上下文
+        // 创建 GraalJS 上下文
         this.context = Context.newBuilder("js")
                 .allowAllAccess(true)
                 .build();
+
+        // 注入HttpClients到 GraalJS 上下文,让脚本可以发起 HTTP 请求
+        context.getBindings("js").putMember("http", new HttpClients());
     }
 
 
@@ -106,26 +127,15 @@ public class Tools {
                 String wrappedScript;
                 // 检查脚本是否定义了 execute 函数
                 if (executeScript.contains("function execute")) {
-                    wrappedScript = String.format(
-                            """
-                                    (function() {
-                                      const params = %s;
-                                      %s
-                                      return execute(params);
-                                    })();""",
+                    wrappedScript = String.format(FUNCTION_EXECUTE_SCRIPT,
                             JSONUtil.toJsonStr(jsonObject),
                             executeScript
                     );
                 } else {
                     // 否则直接执行脚本并期望返回值
-                    wrappedScript = String.format(
-                            """
-                                    (function() {
-                                      const params = %s;
-                                      return (%s);
-                                    })();""",
+                    wrappedScript = String.format(DEFAULT_EXECUTE_SCRIPT,
                             JSONUtil.toJsonStr(jsonObject),
-                        executeScript
+                            executeScript
                     );
                 }
 
@@ -145,17 +155,38 @@ public class Tools {
                 } else if (result.hasArrayElements()) {
                     // 处理数组返回值
                     return JSONUtil.parseArray(result).toString();
-                } else if (result.hasMembers()) {
+                }
+                else if (result.hasMembers()) {
                     // 处理对象返回值
-                    return JSONUtil.parseObj(result).toString();
+                     return JSONUtil.parseObj(result.toString()).toString();
                 } else {
                     return result.toString();
                 }
-
             } catch (Exception e) {
                 log.error("Failed to execute tool: {}", desc.getName(), e);
                 return "执行失败: " + e.getMessage();
             }
         };
     }
+
+    public static String fixAndParse(String raw) {
+        // 1. 给 key 加双引号（简单处理，不适合复杂嵌套）
+        String jsonStr = raw.replaceAll("(\\w+)\\s*:", "\"$1\":");
+
+        // 2. 去掉转义换行符
+        jsonStr = jsonStr.replaceAll("\\\\n", " ")
+                .replaceAll("\\\\t", " ");
+
+        // 3. 去掉多余的反斜杠
+        jsonStr = jsonStr.replaceAll("\\\\\\\\", "\\\\");
+
+        // 4. 可选：去掉类似 ... 或 Array(2)
+        jsonStr = jsonStr.replaceAll("\\.\\.\\.", "")
+                .replaceAll("Array\\(\\d+\\)", "[]");
+
+        // 5. 用 Hutool 解析
+        return jsonStr;
+    }
+
+
 }
