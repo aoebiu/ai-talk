@@ -36,7 +36,7 @@ public class ChatController {
     private final ToolAdapterService toolAdapterService;
 
     /**
-     * 流式对话接口 - 使用 HTTP Streaming (application/stream+json)
+     * 流式对话接口 - 使用 HTTP Streaming (application/x-ndjson)
      */
     @PostMapping(value = "/stream", produces = MediaType.APPLICATION_NDJSON_VALUE)
     public Flux<String> chatStream(@RequestBody ChatRequest request) {
