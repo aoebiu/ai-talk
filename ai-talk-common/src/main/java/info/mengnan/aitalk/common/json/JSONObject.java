@@ -43,10 +43,10 @@ public class JSONObject implements Map<String, Object> {
      * @param obj 对象
      */
     public JSONObject(Object obj) {
-        if (obj instanceof JSONObject) {
-            this.node = ((JSONObject) obj).node.deepCopy();
-        } else if (obj instanceof String) {
-            JsonNode parsedNode = JSONUtil.parseNode((String) obj);
+        if (obj instanceof JSONObject o) {
+            this.node = o.node.deepCopy();
+        } else if (obj instanceof String o) {
+            JsonNode parsedNode = JSONUtil.parseNode(o);
             if (!parsedNode.isObject()) {
                 throw new IllegalArgumentException("JSON string is not an object");
             }
@@ -79,28 +79,28 @@ public class JSONObject implements Map<String, Object> {
     public JSONObject set(String key, Object value) {
         if (value == null) {
             node.putNull(key);
-        } else if (value instanceof String) {
-            node.put(key, (String) value);
-        } else if (value instanceof Integer) {
-            node.put(key, (Integer) value);
-        } else if (value instanceof Long) {
-            node.put(key, (Long) value);
-        } else if (value instanceof Double) {
-            node.put(key, (Double) value);
-        } else if (value instanceof Float) {
-            node.put(key, (Float) value);
-        } else if (value instanceof Boolean) {
-            node.put(key, (Boolean) value);
-        } else if (value instanceof BigDecimal) {
-            node.put(key, (BigDecimal) value);
-        } else if (value instanceof BigInteger) {
-            node.put(key, (BigInteger) value);
-        } else if (value instanceof byte[]) {
-            node.put(key, (byte[]) value);
-        } else if (value instanceof JSONObject) {
-            node.set(key, ((JSONObject) value).node);
-        } else if (value instanceof JSONArray) {
-            node.set(key, ((JSONArray) value).getNode());
+        } else if (value instanceof String v) {
+            node.put(key, v);
+        } else if (value instanceof Integer v) {
+            node.put(key, v);
+        } else if (value instanceof Long v) {
+            node.put(key, v);
+        } else if (value instanceof Double v) {
+            node.put(key, v);
+        } else if (value instanceof Float v) {
+            node.put(key, v);
+        } else if (value instanceof Boolean v) {
+            node.put(key, v);
+        } else if (value instanceof BigDecimal v) {
+            node.put(key, v);
+        } else if (value instanceof BigInteger v) {
+            node.put(key, v);
+        } else if (value instanceof byte[] v) {
+            node.put(key, v);
+        } else if (value instanceof JSONObject v) {
+            node.set(key, v.node);
+        } else if (value instanceof JSONArray v) {
+            node.set(key, v.getNode());
         } else {
             node.set(key, JSONUtil.valueToTree(value));
         }
