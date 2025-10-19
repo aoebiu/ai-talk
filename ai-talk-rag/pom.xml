@@ -41,6 +41,11 @@
             <artifactId>langchain4j-community-dashscope</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
+        </dependency>
+
         <!-- LangChain4j cohere scoring -->
         <dependency>
             <groupId>dev.langchain4j</groupId>

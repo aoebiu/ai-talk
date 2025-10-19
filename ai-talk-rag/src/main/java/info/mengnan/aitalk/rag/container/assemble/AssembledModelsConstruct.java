@@ -1,11 +1,9 @@
 package info.mengnan.aitalk.rag.container.assemble;
 
-import info.mengnan.aitalk.rag.container.AssembledModels;
 import info.mengnan.aitalk.rag.config.ChatOptionConfig;
 import info.mengnan.aitalk.rag.config.ModelConfig;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 模型组装器
@@ -33,6 +31,7 @@ public class AssembledModelsConstruct {
         ModelConfig streamingChatModel = null;
         ModelConfig embeddingModel = null;
         ModelConfig scoringModel = null;
+        ModelConfig moderationModel = null;
 
         // 根据 keyType 分类模型
         for (ModelConfig modelConfig : modelConfigs) {
@@ -53,6 +52,9 @@ public class AssembledModelsConstruct {
                 case "scoring":
                     scoringModel = modelConfig;
                     break;
+                case "moderation":
+                    moderationModel = modelConfig;
+                    break;
                 default:
                     break;
             }
@@ -70,6 +72,7 @@ public class AssembledModelsConstruct {
                 chatOptionConfig.getMinScore(),
                 chatOptionConfig.getInDB(),
                 chatModel,
+                moderationModel,
                 streamingChatModel,
                 embeddingModel,
                 scoringModel

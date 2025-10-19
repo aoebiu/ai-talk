@@ -3,10 +3,10 @@ package info.mengnan.aitalk.rag.container.assemble;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.moderation.ModerationModel;
 import dev.langchain4j.model.scoring.ScoringModel;
-import dev.langchain4j.service.*;
 import info.mengnan.aitalk.rag.container.RagContainer;
-import info.mengnan.aitalk.rag.container.factory.ModelFactory;
+import info.mengnan.aitalk.rag.container.factory.CapableModelFactory;
 import info.mengnan.aitalk.rag.config.ModelConfig;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,14 +15,15 @@ import java.util.*;
 /**
  * 模型注册器
  * 接收外部传入的模型配置列表，创建模型实例并注册到容器中
- * 不进行任何数据库查询操作
  */
 @Slf4j
 public class ModelRegistry {
 
+    private final CapableModelFactory modelFactory;
     private final RagContainer ragContainer;
 
-    public ModelRegistry(RagContainer ragContainer) {
+    public ModelRegistry(CapableModelFactory modelFactory,RagContainer ragContainer) {
+        this.modelFactory = modelFactory;
         this.ragContainer = ragContainer;
     }
 
@@ -51,6 +52,7 @@ public class ModelRegistry {
         registerModels(configsByType, "streaming_chat", this::registerStreamingChatModel);
         registerModels(configsByType, "embedding", this::registerEmbeddingModel);
         registerModels(configsByType, "scoring", this::registerScoringModel);
+        registerModels(configsByType, "moderation", this::registerModerationModel);
     }
 
     /**
@@ -75,22 +77,27 @@ public class ModelRegistry {
     }
 
     private void registerChatModel(ModelConfig config) {
-        ChatModel chatModel = ModelFactory.createChatModel(config);
+        ChatModel chatModel = modelFactory.createChatModel(config);
         ragContainer.registerChatModel(config.getModelName(), chatModel);
     }
 
     private void registerStreamingChatModel(ModelConfig config) {
-        StreamingChatModel streamingChatModel = ModelFactory.createStreamingChatModel(config);
+        StreamingChatModel streamingChatModel = modelFactory.createStreamingChatModel(config);
         ragContainer.registerStreamingChatModel(config.getModelName(), streamingChatModel);
     }
 
+    private void registerModerationModel(ModelConfig config) {
+        ModerationModel moderationModel = modelFactory.createModerationModel(config);
+        ragContainer.registerModerationModel(config.getModelName(), moderationModel);
+    }
+
     private void registerEmbeddingModel(ModelConfig config) {
-        EmbeddingModel embeddingModel = ModelFactory.createEmbeddingModel(config);
+        EmbeddingModel embeddingModel = modelFactory.createEmbeddingModel(config);
         ragContainer.registerEmbeddingModel(config.getModelName(), embeddingModel);
     }
 
     private void registerScoringModel(ModelConfig config) {
-        ScoringModel scoringModel = ModelFactory.createScoringModel(config);
+        ScoringModel scoringModel = modelFactory.createScoringModel(config);
         ragContainer.registerScoringModel(config.getModelName(), scoringModel);
     }
 
@@ -98,10 +105,4 @@ public class ModelRegistry {
     private interface ModelRegistrationHandler {
         void register(ModelConfig config);
     }
-
-    public interface AssistantUnique {
-        @SystemMessage(fromResource = "rag/customer_message.txt")
-        TokenStream chatStreaming(@MemoryId String memoryId, @UserMessage String userMessage);
-    }
-
 }

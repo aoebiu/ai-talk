@@ -1,6 +1,6 @@
 package info.mengnan.aitalk.server.service;
 
-import info.mengnan.aitalk.rag.container.AssembledModels;
+import info.mengnan.aitalk.rag.container.assemble.AssembledModels;
 import info.mengnan.aitalk.rag.container.assemble.AssembledModelsConstruct;
 import info.mengnan.aitalk.rag.config.ChatOptionConfig;
 import info.mengnan.aitalk.rag.config.ModelConfig;
@@ -19,7 +19,7 @@ import java.util.List;
 
 /**
  * RAG适配服务
- * 负责从数据库查询数据,转换为 DTO,并组装成 AssembledModels
+ * 负责从数据库查询数据并组装成 AssembledModels
  * 作为 server 项目和 rag 项目之间的适配层
  */
 @Slf4j
@@ -66,9 +66,6 @@ public class RagAdapterService {
         return assembledModelsConstruct.assemble(chatOptionConfig, modelConfigs);
     }
 
-    /**
-     * 将 ChatOption 实体转换为 ChatOptionConfig DTO
-     */
     private ChatOptionConfig convertToChatOptionConfig(ChatOption chatOption) {
         ChatOptionConfig config = new ChatOptionConfig();
         config.setName(chatOption.getName());
@@ -84,9 +81,6 @@ public class RagAdapterService {
         return config;
     }
 
-    /**
-     * 将 ChatApiKey 实体转换为 ModelConfig DTO
-     */
     private ModelConfig convertToModelConfig(ChatApiKey apiKey) {
         ModelConfig config = new ModelConfig();
         config.setModelName(apiKey.getModelName());

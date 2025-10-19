@@ -6,6 +6,7 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.moderation.ModerationModel;
 import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.rag.content.aggregator.ContentAggregator;
@@ -25,8 +26,7 @@ import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import info.mengnan.aitalk.rag.container.RagContainer;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
-import info.mengnan.aitalk.rag.container.AssembledModels;
-import info.mengnan.aitalk.rag.container.assemble.ModelRegistry.*;
+import info.mengnan.aitalk.rag.container.assemble.AssembledModels;
 import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
 import java.util.Map;
@@ -171,6 +171,19 @@ public class ChatService {
         if (assembledModels.chatModel() != null) {
             ChatModel chatModel = ragContainer.getChatModel(assembledModels.chatModel().getModelName());
             builder.chatModel(chatModel);
+        }
+
+        if (assembledModels.chatModel() != null) {
+            ChatModel chatModel = ragContainer.getChatModel(assembledModels.chatModel().getModelName());
+            builder.chatModel(chatModel);
+        }
+
+        // todo 临时处理
+        if (assembledModels.moderateModel() != null) {
+            ModerationModel chatModel = ragContainer.getModerateModel(assembledModels.moderateModel().getModelName());
+            builder.moderationModel(chatModel);
+        } else {
+            builder.moderationModel(ragContainer.getModerateModel(null));
         }
 
         return builder
