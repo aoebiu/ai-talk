@@ -168,25 +168,4 @@ public class Tools {
             }
         };
     }
-
-    public static String fixAndParse(String raw) {
-        // 1. 给 key 加双引号（简单处理，不适合复杂嵌套）
-        String jsonStr = raw.replaceAll("(\\w+)\\s*:", "\"$1\":");
-
-        // 2. 去掉转义换行符
-        jsonStr = jsonStr.replaceAll("\\\\n", " ")
-                .replaceAll("\\\\t", " ");
-
-        // 3. 去掉多余的反斜杠
-        jsonStr = jsonStr.replaceAll("\\\\\\\\", "\\\\");
-
-        // 4. 可选：去掉类似 ... 或 Array(2)
-        jsonStr = jsonStr.replaceAll("\\.\\.\\.", "")
-                .replaceAll("Array\\(\\d+\\)", "[]");
-
-        // 5. 用 Hutool 解析
-        return jsonStr;
-    }
-
-
 }

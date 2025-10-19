@@ -9,6 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,17 +19,29 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tools HTTP请求测试类
- * 测试各种HTTP请求场景
+ * Tools 测试类
  */
 @Slf4j
-class ToolsHttpTest {
+class ToolsTest {
 
     private Tools tools;
+    private final static String JAVASCRIPT_PATH = "info/mengnan/aitalk/rag/tools/js/";
 
     @BeforeEach
     void setUp() {
         tools = new Tools();
+    }
+
+    private String loadScript(String fileName) {
+        String path = JAVASCRIPT_PATH + fileName;
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(path)) {
+            if (is == null) {
+                throw new IllegalArgumentException("Script file not found: " + path);
+            }
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load script: " + path, e);
+        }
     }
 
     /**
@@ -45,36 +60,8 @@ class ToolsHttpTest {
 
         weatherTool.setRequired(List.of("city"));
 
-        // 使用你提供的天气查询脚本
-        weatherTool.setExecute("""
-                function execute(params) {
-                    var city = params.city;
-                    var unit = params.unit || "celsius";
-
-                    // 模拟天气数据(实际应用中应该调用真实的天气API)
-                    var weatherData = {
-                        "北京": { temp: 15, weather: "晴", humidity: 45 },
-                        "上海": { temp: 20, weather: "多云", humidity: 60 },
-                        "深圳": { temp: 25, weather: "雨", humidity: 80 },
-                        "New York": { temp: 18, weather: "Sunny", humidity: 50 },
-                        "London": { temp: 12, weather: "Cloudy", humidity: 70 }
-                    };
-
-                    var data = weatherData[city];
-                    if (!data) {
-                        return "抱歉,暂时无法查询 " + city + " 的天气信息";
-                    }
-
-                    var temperature = unit === "fahrenheit" ?
-                        (data.temp * 9/5 + 32).toFixed(1) + "°F" :
-                        data.temp + "°C";
-
-                    return "📍 " + city + " 的天气信息:\\n" +
-                           "🌡️ 温度: " + temperature + "\\n" +
-                           "☁️ 天气: " + data.weather + "\\n" +
-                           "💧 湿度: " + data.humidity + "%";
-                }
-                """);
+        // 从 js 包下加载脚本
+        weatherTool.setExecute(loadScript("weather-query.js"));
 
         // 创建工具
         Map<ToolSpecification, ToolExecutor> toolsMap = tools.createDynamicTools(List.of(weatherTool));
@@ -145,17 +132,7 @@ class ToolsHttpTest {
         getTool.setProperty(properties);
         getTool.setRequired(List.of("userId"));
 
-        getTool.setExecute("""
-                function execute(params) {
-                    const url = 'https://jsonplaceholder.typicode.com/users/' + params.userId;
-                    try {
-                        const response = http.get(url);
-                        return response;
-                    } catch (e) {
-                        return 'HTTP请求失败: ' + e.message;
-                    }
-                }
-                """);
+        getTool.setExecute(loadScript("http-get.js"));
 
         Map<ToolSpecification, ToolExecutor> toolsMap = tools.createDynamicTools(List.of(getTool));
         ToolExecutor executor = toolsMap.values().iterator().next();
@@ -193,19 +170,7 @@ class ToolsHttpTest {
         postTool.setProperty(properties);
         postTool.setRequired(List.of("title", "body", "userId"));
 
-        postTool.setExecute("""
-                function execute(params) {
-                    const url = 'https://jsonplaceholder.typicode.com/posts';
-                    const payload = JSON.stringify({
-                        title: params.title,
-                        body: params.body,
-                        userId: parseInt(params.userId)
-                    });
-
-                    const response = http.post(url, payload);
-                    return response;
-                }
-                """);
+        postTool.setExecute(loadScript("http-post.js"));
 
         Map<ToolSpecification, ToolExecutor> toolsMap = tools.createDynamicTools(List.of(postTool));
         ToolExecutor executor = toolsMap.values().iterator().next();
@@ -243,20 +208,7 @@ class ToolsHttpTest {
         putTool.setProperty(properties);
         putTool.setRequired(List.of("postId", "title", "body"));
 
-        putTool.setExecute("""
-                function execute(params) {
-                    const url = 'https://jsonplaceholder.typicode.com/posts/' + params.postId;
-                    const payload = JSON.stringify({
-                        id: parseInt(params.postId),
-                        title: params.title,
-                        body: params.body,
-                        userId: 1
-                    });
-
-                    const response = http.put(url, payload);
-                    return response;
-                }
-                """);
+        putTool.setExecute(loadScript("http-put.js"));
 
         Map<ToolSpecification, ToolExecutor> toolsMap = tools.createDynamicTools(List.of(putTool));
         ToolExecutor executor = toolsMap.values().iterator().next();
@@ -291,14 +243,7 @@ class ToolsHttpTest {
         deleteTool.setProperty(properties);
         deleteTool.setRequired(List.of("postId"));
 
-        deleteTool.setExecute("""
-                function execute(params) {
-                    const url = 'https://jsonplaceholder.typicode.com/posts/' + params.postId;
-
-                    const response = http.delete(url);
-                    return '删除成功: ' + response;
-                }
-                """);
+        deleteTool.setExecute(loadScript("http-delete.js"));
 
         Map<ToolSpecification, ToolExecutor> toolsMap = tools.createDynamicTools(List.of(deleteTool));
         ToolExecutor executor = toolsMap.values().iterator().next();
@@ -332,16 +277,7 @@ class ToolsHttpTest {
         headerTool.setProperty(properties);
         headerTool.setRequired(List.of("url"));
 
-        headerTool.setExecute("""
-                function execute(params) {
-                    const url = 'https://jsonplaceholder.typicode.com/posts/1';
-
-                    // 注意: 实际的http客户端可能需要支持设置headers
-                    // 这里仅作示例
-                    const response = http.get(url);
-                    return response;
-                }
-                """);
+        headerTool.setExecute(loadScript("http-with-headers.js"));
 
         Map<ToolSpecification, ToolExecutor> toolsMap = tools.createDynamicTools(List.of(headerTool));
         ToolExecutor executor = toolsMap.values().iterator().next();
@@ -375,26 +311,7 @@ class ToolsHttpTest {
         complexTool.setProperty(properties);
         complexTool.setRequired(List.of("userId"));
 
-        complexTool.setExecute("""
-                function execute(params) {
-                    const userId = params.userId;
-                    const url = 'https://jsonplaceholder.typicode.com/posts?userId=' + userId;
-
-                    const responseStr = http.get(url);
-                    const responseObj = JSON.parse(responseStr);
-                    const posts = JSON.parse(responseObj.body);
-                    console.log(posts);
-                    // 解析响应并统计
-                    const count = Array.isArray(posts) ? posts.length : 0;
-                    const v  = JSON.stringify({
-                        userId: userId,
-                        postCount: count,
-                        message: '用户 ' + userId + ' 共有 ' + count + ' 篇帖子',
-                        posts: posts
-                    });
-                    return v;
-                }
-                """);
+        complexTool.setExecute(loadScript("complex-business-logic.js"));
 
         Map<ToolSpecification, ToolExecutor> toolsMap = tools.createDynamicTools(List.of(complexTool));
         ToolExecutor executor = toolsMap.values().iterator().next();
@@ -427,14 +344,7 @@ class ToolsHttpTest {
         properties.put("dummy", "占位参数");
         errorTool.setProperty(properties);
 
-        errorTool.setExecute("""
-                function execute(params) {
-                    const url = 'http://invalid-url-that-does-not-exist-12345.com';
-
-                    const response = http.get(url);
-                    return response;
-                }
-                """);
+        errorTool.setExecute(loadScript("invalid-url-test.js"));
 
         Map<ToolSpecification, ToolExecutor> toolsMap = tools.createDynamicTools(List.of(errorTool));
         ToolExecutor executor = toolsMap.values().iterator().next();
