@@ -5,10 +5,11 @@ import com.alibaba.dashscope.tokenizers.Tokenizer;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import info.mengnan.aitalk.rag.ChatService;
 import info.mengnan.aitalk.rag.config.ElasticsearchProperties;
-import info.mengnan.aitalk.rag.container.RagContainer;
 import info.mengnan.aitalk.rag.container.assemble.AssembledModelsConstruct;
 import info.mengnan.aitalk.rag.container.assemble.DynamicEmbeddingStoreRegistry;
 import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
+import info.mengnan.aitalk.rag.container.RagContainer;
+import info.mengnan.aitalk.rag.container.factory.CapableModelFactory;
 import info.mengnan.aitalk.rag.config.ModelConfig;
 import info.mengnan.aitalk.repository.entity.ChatApiKey;
 import info.mengnan.aitalk.repository.service.ChatApiKeyService;
@@ -38,21 +39,27 @@ public class RagConfiguration {
     }
 
     /**
-     * 创建RagContainer
+     * 创建CapableModelFactory
      */
     @Bean
-    public RagContainer ragContainer() {
+    public CapableModelFactory createModelFactory() {
+        log.info("Creating CapableModelFactory...");
+        return new CapableModelFactory();
+    }
+
+    @Bean
+    public RagContainer createRagContainer() {
         log.info("Creating RagContainer...");
         return new RagContainer();
     }
 
     /**
      * 创建并初始化ModelRegistry
-     * 从数据库查询模型配置,转换为DTO后传递给ModelRegistry
      */
     @Bean
     public ModelRegistry modelRegistry(ChatApiKeyService chatApiKeyService,
-                                      RagContainer ragContainer) {
+                                       CapableModelFactory factory,
+                                       RagContainer ragContainer) {
         log.info("Creating and initializing ModelRegistry...");
 
         // 从数据库查询所有模型配置
@@ -63,7 +70,7 @@ public class RagConfiguration {
                 .collect(Collectors.toList());
 
         // 创建 ModelRegistry 并初始化
-        ModelRegistry modelRegistry = new ModelRegistry(ragContainer);
+        ModelRegistry modelRegistry = new ModelRegistry(factory, ragContainer);
         modelRegistry.initialize(modelConfigs);
 
         log.info("ModelRegistry initialized successfully with {} models", modelConfigs.size());

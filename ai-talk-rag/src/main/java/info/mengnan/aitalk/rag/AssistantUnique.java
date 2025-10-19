@@ -1,0 +1,11 @@
+package info.mengnan.aitalk.rag;
+
+import dev.langchain4j.service.*;
+
+public interface AssistantUnique {
+
+    @Moderate
+    @SystemMessage(fromResource = "rag/customer_message.txt")
+    TokenStream chatStreaming(@MemoryId String memoryId, @UserMessage String userMessage);
+
+}

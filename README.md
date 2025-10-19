@@ -107,6 +107,28 @@ function execute(params) {
 }
 ```
 
+---
+# RAG
+### 核心流程
+
+```
+文件上传 → 文件保存 → 文档解析 → 文档分割 → 向量化 → Elasticsearch存储
+```
+### API 接口
+开启RAG配置的同时调用一下接口上传文件进行向量话
+
+/api/documents/upload
+
+```shell
+curl --location 'http://localhost:7900/api/documents/upload' \
+--form 'file=@"[文件目录]/[文件名称].[文件类型]"'
+```
+
+---
+
+### 快速示例
+
+启动成功后，可使用第三方客户端调用 API 与模型进行对话或向量检索
 
 
 ---
@@ -130,29 +152,7 @@ sudo ${JAVA_HOME}/lib/installer/bin/gu install js
 - 通义千问：chat、streaming_chat、embedding
 - Ollama：chat、streaming_chat、embedding
 - Cohere：scoring
-
----
-# RAG
-### 核心流程
-
-```
-文件上传 → 文件保存 → 文档解析 → 文档分割 → 向量化 → Elasticsearch存储
-```
-### API 接口
-开启RAG配置的同时调用一下接口上传文件进行向量话
-
-/api/documents/upload
-
-```shell
-curl --location 'http://localhost:7900/api/documents/upload' \
---form 'file=@"[文件目录]/[文件名称].[文件类型]"'
-```
-
----
-
-### 快速示例
-
-启动成功后，可使用第三方客户端调用 API 与模型进行对话或向量检索
+- OpenAI：moderate
 
 ---
 

@@ -6,6 +6,8 @@ import dev.langchain4j.model.chat.DisabledChatModel;
 import dev.langchain4j.model.chat.DisabledStreamingChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.moderation.DisabledModerationModel;
+import dev.langchain4j.model.moderation.ModerationModel;
 import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.rag.query.transformer.QueryTransformer;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -13,6 +15,7 @@ import info.mengnan.aitalk.common.param.ModelType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -29,6 +32,7 @@ public class RagContainer {
     private final Map<String, EmbeddingModel> embeddingModelMap = new ConcurrentHashMap<>();
     private final Map<String, ScoringModel> scoringModelMap = new ConcurrentHashMap<>();
     private final Map<String, EmbeddingStore<TextSegment>> embeddingStoreMap = new ConcurrentHashMap<>();
+    private final Map<String, ModerationModel> moderationModelMap = new ConcurrentHashMap<>();
 
     // ==================== 注册API ====================
 
@@ -37,7 +41,6 @@ public class RagContainer {
      *
      * @param modelName 模型名称
      * @param model     模型实例
-     * @return 容器本身，支持链式调用
      */
     public void registerStreamingChatModel(String modelName, StreamingChatModel model) {
         String key = buildKey(ModelType.STREAMING_CHAT, modelName);
@@ -49,7 +52,6 @@ public class RagContainer {
      *
      * @param modelName 模型名称
      * @param model     模型实例
-     * @return 容器本身，支持链式调用
      */
     public void registerChatModel(String modelName, ChatModel model) {
         String key = buildKey(ModelType.CHAT, modelName);
@@ -61,7 +63,6 @@ public class RagContainer {
      *
      * @param modelName 模型名称
      * @param model     模型实例
-     * @return 容器本身，支持链式调用
      */
     public void registerEmbeddingModel(String modelName, EmbeddingModel model) {
         String key = buildKey(ModelType.EMBEDDING, modelName);
@@ -133,6 +134,16 @@ public class RagContainer {
     public ScoringModel getScoringModel(String modelName) {
         String key = buildKey(ModelType.SCORING, modelName);
         return scoringModelMap.get(key);
+    }
+
+    public ModerationModel getModerateModel(String modelName) {
+        String key = buildKey(ModelType.MODERATE, modelName);
+        return moderationModelMap.getOrDefault(key, new DisabledModerationModel());
+    }
+
+    public void registerModerationModel(String modelName, ModerationModel moderationModel) {
+        String key = buildKey(ModelType.MODERATE, modelName);
+        moderationModelMap.put(key, moderationModel);
     }
 
     public void registerEmbeddingStore(String beanName, EmbeddingStore<TextSegment> embeddingStore) {
@@ -215,5 +226,7 @@ public class RagContainer {
     private String buildKey(ModelType modelType, String modelName) {
         return modelType.n() + ":" + modelName;
     }
+
+
 }
 

@@ -1,4 +1,4 @@
-package info.mengnan.aitalk.rag.container;
+package info.mengnan.aitalk.rag.container.assemble;
 
 import info.mengnan.aitalk.rag.config.ModelConfig;
 
@@ -13,6 +13,7 @@ public record AssembledModels(String name,  // 模型名称
                               Double minScore, // 检索最小相似度分数
                               Boolean inDB,
                               ModelConfig chatModel,
+                              ModelConfig moderateModel,
                               ModelConfig streamingChatModel,
                               ModelConfig embeddingModel,
                               ModelConfig scoringModel) {
