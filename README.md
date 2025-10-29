@@ -3,6 +3,35 @@
 **AI Talk** 是一个智能对话系统，支持动态配置各种模型与工具（Tools），提供文档向量化、RAG 检索增强生成（Retrieval-Augmented Generation）以及流式对话输出功能。
 
 > ⚠️ 当前项目仍在搭建中，部分功能尚不完善，但已可进行体验。
+>
+>
+> 
+### 问题反馈
+
+如遇问题或有建议，请提交 Issue 或 联系邮箱：LTL1510@126.com
+
+## 技术栈
+
+- JVM 与运行环境：GraalVM 17（需安装 GraalJS）
+- 后端框架：Spring Boot 3.5.6
+- AI 框架：LangChain4j 1.6
+- 存储与检索：Elasticsearch、MySQL
+
+安装 GraalJS：
+```bash
+sudo ${JAVA_HOME}/lib/installer/bin/gu install js
+```
+
+---
+
+### 目前支持以下模型
+
+- 通义千问：chat、streaming_chat、embedding
+- Ollama：chat、streaming_chat、embedding
+- Cohere：scoring
+- OpenAI：moderate
+
+---
 
 
 # 简单快速上手
@@ -108,55 +137,55 @@ function execute(params) {
 ```
 
 ---
+
 # RAG
-### 核心流程
+
+AI Talk 提供完整的 RAG 能力，支持文档上传、智能分割、向量化存储与检索增强对话。
+
+## 核心流程
 
 ```
-文件上传 → 文件保存 → 文档解析 → 文档分割 → 向量化 → Elasticsearch存储
-```
-### API 接口
-开启RAG配置的同时调用一下接口上传文件进行向量话
-
-/api/documents/upload
-
-```shell
-curl --location 'http://localhost:7900/api/documents/upload' \
---form 'file=@"[文件目录]/[文件名称].[文件类型]"'
+文件上传 → 保存到本地 → 智能解析 → 按类型分割 → 生成向量 → 存入 Elasticsearch → 检索增强对话
 ```
 
----
+## 快速使用
 
-### 快速示例
+### 上传文档并向量化
 
-启动成功后，可使用第三方客户端调用 API 与模型进行对话或向量检索
+使用文档上传接口将文件进行向量化处理：
 
 
----
-
-## 技术栈
-
-- JVM 与运行环境：GraalVM 17（需安装 GraalJS）
-- 后端框架：Spring Boot 3.5.6
-- AI 框架：LangChain4j 1.6
-- 存储与检索：Elasticsearch、MySQL
-
-安装 GraalJS：
+**指定文档类型上传**：
 ```bash
-sudo ${JAVA_HOME}/lib/installer/bin/gu install js
+curl --location 'http://localhost:7900/api/documents/upload?type=paper' \
+--form 'file=@"/path/to/your/document.pdf"'
 ```
 
----
+**支持的文档类型**：
 
-### 目前支持以下模型
+| 类型 | 说明 | 分块大小 | 重叠大小 | 适用场景 |
+|------|------|----------|----------|----------|
+| `short_text` | 短文本 | 150 字符 | 20 字符 | 新闻、博客、短文档 |
+| `paper` | 论文 | 400 字符 | 40 字符 | 学术论文、研究报告 |
+| `contract` | 合同 | 300 字符 | 0 字符 | 法律文档、合同协议 |
+| `novel` | 小说 | 750 字符 | 50 字符 | 小说、长篇叙事文档 |
+| `default` | 默认 | 300 字符 | 50 字符 | 通用文档 |
 
-- 通义千问：chat、streaming_chat、embedding
-- Ollama：chat、streaming_chat、embedding
-- Cohere：scoring
-- OpenAI：moderate
+**支持的文件格式**：
+- **PDF 文档**（`.pdf`）
+- **Office 文档**（`.doc`, `.docx`, `.ppt`, `.pptx`, `.xls`, `.xlsx`）
+- **文本文档**（`.md`, `.txt`）
 
----
 
-### 问题反馈
+### 配置 RAG
 
-如遇问题或有建议，请提交 Issue 或联系：
-邮箱：LTL1510@126.com
+在对话配置中启用 RAG 功能，系统将自动：
+- 根据用户问题检索相关文档片段
+- 将检索结果作为上下文注入对话
+- 生成基于文档内容的准确回答
+
+### 开始对话
+
+启动成功后，使用第三方客户端调用 API，系统将自动结合文档内容进行智能对话。
+
+
