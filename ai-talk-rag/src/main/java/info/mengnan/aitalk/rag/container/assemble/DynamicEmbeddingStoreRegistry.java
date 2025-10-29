@@ -9,7 +9,6 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore;
 import info.mengnan.aitalk.rag.config.ElasticsearchProperties;
-import info.mengnan.aitalk.rag.container.RagContainer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -22,8 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 动态 Elasticsearch 索引管理器
- * 在应用启动时查询所有 ES 索引，并为每个索引动态注册一个 EmbeddingStore
+ * 动态 Elasticsearch 索引管理器,提供动态创建 EmbeddingStore 的能力
  */
 @Slf4j
 public class DynamicEmbeddingStoreRegistry {
@@ -33,31 +31,53 @@ public class DynamicEmbeddingStoreRegistry {
      */
     private final ElasticsearchProperties properties;
 
-    private final RagContainer ragContainer;
-
-    public DynamicEmbeddingStoreRegistry(ElasticsearchProperties properties, RagContainer ragContainer) {
+    public DynamicEmbeddingStoreRegistry(ElasticsearchProperties properties) {
         this.properties = properties;
-        this.ragContainer = ragContainer;
     }
 
     /**
-     * 初始化方法
+     * 查询所有可用的 Elasticsearch 索引名称
+     *
+     * @return 索引名称列表
      */
-    public void initialize() {
+    public List<String> queryAllIndexNames() {
         try {
             RestClient restClient = createRestClient(this.properties);
-
-            // 查询所有索引,并为每个索引注册一个 Bean
             List<String> indexNames = queryAllIndices(restClient, properties);
             log.info("Found {} indices in Elasticsearch: {}", indexNames.size(), indexNames);
-
-            for (String indexName : indexNames) {
-                registerEmbeddingStoreBeanInternal(ragContainer, indexName, properties);
-            }
-
+            restClient.close();
+            return indexNames;
         } catch (Exception e) {
-            log.error("Failed to dynamically register embedding stores", e);
-            throw new RuntimeException("Failed to initialize dynamic embedding stores", e);
+            log.error("Failed to query Elasticsearch indices", e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 为指定索引动态创建 EmbeddingStore
+     * 每次调用都会创建新的实例
+     *
+     * @param indexName Elasticsearch 索引名称
+     * @return EmbeddingStore 实例
+     */
+    public EmbeddingStore<TextSegment> createEmbeddingStore(String indexName) {
+        try {
+            log.debug("Creating EmbeddingStore for index: {}", indexName);
+
+            // 为每个索引创建独立的 RestClient
+            RestClient restClient = createRestClient(properties);
+
+            // 创建 EmbeddingStore
+            EmbeddingStore<TextSegment> embeddingStore = ElasticsearchEmbeddingStore.builder()
+                    .restClient(restClient)
+                    .indexName(indexName)
+                    .build();
+
+            log.debug("Successfully created EmbeddingStore for index: {}", indexName);
+            return embeddingStore;
+        } catch (Exception e) {
+            log.error("Failed to create EmbeddingStore for index: {}", indexName, e);
+            throw new RuntimeException("Failed to create EmbeddingStore for index: " + indexName, e);
         }
     }
 
@@ -117,79 +137,6 @@ public class DynamicEmbeddingStoreRegistry {
             }
         }
 
-        // 确保默认索引名称也被包含（向后兼容）
-        if (properties.getIndexName() != null && !indexNames.contains(properties.getIndexName())) {
-            indexNames.add(properties.getIndexName());
-        }
-
         return indexNames;
     }
-
-    /**
-     * 内部方法：为指定索引注册 EmbeddingStore Bean（启动时使用）
-     */
-    private void registerEmbeddingStoreBeanInternal(RagContainer ragContainer,
-                                           String indexName,
-                                           ElasticsearchProperties properties) {
-        String beanName = doRegisterEmbeddingStoreBean(ragContainer, indexName, properties);
-        if (beanName != null) {
-            log.info("Registered EmbeddingStore bean: {} for index: {}", beanName, indexName);
-        } else {
-            log.error("Failed to register EmbeddingStore for index: {}", indexName);
-        }
-    }
-
-    /**
-     *动态注册 EmbeddingStore Bean 到 Spring IOC 容器
-     *
-     * <p>外部服务可以通过此方法动态创建和注册新的 EmbeddingStore Bean</p>
-     *
-     * @param indexName Elasticsearch 索引名称
-     * @return 注册成功的 Bean 名称，失败返回 null
-     * @throws IllegalStateException 如果在 Spring 容器初始化完成前调用此方法
-     */
-    public String registerEmbeddingStoreBean(String indexName) {
-        return doRegisterEmbeddingStoreBean(this.ragContainer, indexName, this.properties);
-    }
-
-    /**
-     * 核心注册逻辑：创建并注册 EmbeddingStore Bean
-     *
-     * @param indexName Elasticsearch 索引名称
-     * @param properties Elasticsearch 配置属性
-     * @return 注册成功的 Bean 名称，失败返回 null
-     */
-    private String doRegisterEmbeddingStoreBean(RagContainer ragContainer,
-                                                String indexName,
-                                                ElasticsearchProperties properties) {
-        try {
-            // 生成 Bean 名称
-            String beanName = "embedding_store:" + indexName;
-
-            // 检查 Bean 是否已存在
-            if (ragContainer.containsEmbeddingStore(beanName)) {
-                log.warn("EmbeddingStore bean already exists: {} for index: {}", beanName, indexName);
-                return beanName;
-            }
-
-            // 为每个索引创建独立的 RestClient
-            RestClient restClient = createRestClient(properties);
-
-            // 创建 EmbeddingStore
-            EmbeddingStore<TextSegment> embeddingStore = ElasticsearchEmbeddingStore.builder()
-                    .restClient(restClient)
-                    .indexName(indexName)
-                    .build();
-
-            // 使用 registerSingleton 直接注册实例
-            ragContainer.registerEmbeddingStore(beanName, embeddingStore);
-
-            log.info("Successfully registered EmbeddingStore bean: {} for index: {}", beanName, indexName);
-            return beanName;
-        } catch (Exception e) {
-            log.error("Failed to register EmbeddingStore for index: {}", indexName, e);
-            return null;
-        }
-    }
-
 }

@@ -14,17 +14,19 @@ public interface ChatApiKeyMapper extends BaseMapper<ChatApiKey> {
     @Delete("DELETE FROM chat_api_key WHERE id = #{id}")
     int deleteById(Long id);
 
-    default List<ChatApiKey> findByKeyType(String keyType) {
-        LambdaQueryWrapper<ChatApiKey> qw = new LambdaQueryWrapper<ChatApiKey>()
-                .eq(ChatApiKey::getKeyType, keyType);
-        return selectList(qw);
-    }
-
     default ChatApiKey findById(Long id) {
         return selectById(id);
     }
 
     default List<ChatApiKey> findALl() {
         return selectList(null);
+    }
+
+    default List<ChatApiKey> findByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+
+        LambdaQueryWrapper<ChatApiKey> qw = new LambdaQueryWrapper<ChatApiKey>()
+                .in(ChatApiKey::getId, ids);
+        return selectList(qw);
     }
 }

@@ -5,104 +5,60 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.moderation.ModerationModel;
 import dev.langchain4j.model.scoring.ScoringModel;
-import info.mengnan.aitalk.rag.container.RagContainer;
 import info.mengnan.aitalk.rag.container.factory.CapableModelFactory;
 import info.mengnan.aitalk.rag.config.ModelConfig;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
-
 /**
- * 模型注册器
- * 接收外部传入的模型配置列表，创建模型实例并注册到容器中
+ * 负责动态创建模型实例,每次调用都会创建新的模型实例
  */
 @Slf4j
 public class ModelRegistry {
 
     private final CapableModelFactory modelFactory;
-    private final RagContainer ragContainer;
 
-    public ModelRegistry(CapableModelFactory modelFactory,RagContainer ragContainer) {
+    public ModelRegistry(CapableModelFactory modelFactory) {
         this.modelFactory = modelFactory;
-        this.ragContainer = ragContainer;
+    }
+
+
+    /**
+     * 动态创建 ChatModel
+     */
+    public ChatModel createChatModel(ModelConfig config) {
+        log.debug("Creating ChatModel: {} (provider: {})", config.getModelName(), config.getModelProvider());
+        return modelFactory.createChatModel(config);
     }
 
     /**
-     * 初始化方法 - 根据传入的模型配置列表注册模型到容器
-     *
-     * @param modelConfigs 模型配置列表
+     * 动态创建 StreamingChatModel
      */
-    public void initialize(List<ModelConfig> modelConfigs) {
-        if (modelConfigs == null || modelConfigs.isEmpty()) {
-            log.warn("No model configurations provided for initialization");
-            return;
-        }
-
-        // 按类型分组
-        Map<String, List<ModelConfig>> configsByType = new HashMap<>();
-        for (ModelConfig config : modelConfigs) {
-            String keyType = config.getKeyType();
-            if (keyType != null) {
-                configsByType.computeIfAbsent(keyType.toLowerCase(), k -> new ArrayList<>()).add(config);
-            }
-        }
-
-        // 注册各类型的模型
-        registerModels(configsByType, "chat", this::registerChatModel);
-        registerModels(configsByType, "streaming_chat", this::registerStreamingChatModel);
-        registerModels(configsByType, "embedding", this::registerEmbeddingModel);
-        registerModels(configsByType, "scoring", this::registerScoringModel);
-        registerModels(configsByType, "moderation", this::registerModerationModel);
+    public StreamingChatModel createStreamingChatModel(ModelConfig config) {
+        log.debug("Creating StreamingChatModel: {} (provider: {})", config.getModelName(), config.getModelProvider());
+        return modelFactory.createStreamingChatModel(config);
     }
 
     /**
-     * 通用的模型注册方法
+     * 动态创建 ModerationModel
      */
-    private void registerModels(Map<String, List<ModelConfig>> configsByType,
-                               String modelType,
-                               ModelRegistrationHandler handler) {
-        List<ModelConfig> configs = configsByType.get(modelType);
-        if (configs != null) {
-            for (ModelConfig config : configs) {
-                try {
-                    handler.register(config);
-                    log.info("Successfully registered {} model: {} (provider: {})",
-                            modelType, config.getModelName(), config.getModelProvider());
-                } catch (Exception e) {
-                    log.error("Failed to register {} model: {} - {}",
-                            modelType, config.getModelName(), e.getMessage(), e);
-                }
-            }
-        }
+    public ModerationModel createModerationModel(ModelConfig config) {
+        log.debug("Creating ModerationModel: {} (provider: {})", config.getModelName(), config.getModelProvider());
+        return modelFactory.createModerationModel(config);
     }
 
-    private void registerChatModel(ModelConfig config) {
-        ChatModel chatModel = modelFactory.createChatModel(config);
-        ragContainer.registerChatModel(config.getModelName(), chatModel);
+    /**
+     * 动态创建 EmbeddingModel
+     */
+    public EmbeddingModel createEmbeddingModel(ModelConfig config) {
+        log.debug("Creating EmbeddingModel: {} (provider: {})", config.getModelName(), config.getModelProvider());
+        return modelFactory.createEmbeddingModel(config);
     }
 
-    private void registerStreamingChatModel(ModelConfig config) {
-        StreamingChatModel streamingChatModel = modelFactory.createStreamingChatModel(config);
-        ragContainer.registerStreamingChatModel(config.getModelName(), streamingChatModel);
-    }
-
-    private void registerModerationModel(ModelConfig config) {
-        ModerationModel moderationModel = modelFactory.createModerationModel(config);
-        ragContainer.registerModerationModel(config.getModelName(), moderationModel);
-    }
-
-    private void registerEmbeddingModel(ModelConfig config) {
-        EmbeddingModel embeddingModel = modelFactory.createEmbeddingModel(config);
-        ragContainer.registerEmbeddingModel(config.getModelName(), embeddingModel);
-    }
-
-    private void registerScoringModel(ModelConfig config) {
-        ScoringModel scoringModel = modelFactory.createScoringModel(config);
-        ragContainer.registerScoringModel(config.getModelName(), scoringModel);
-    }
-
-    @FunctionalInterface
-    private interface ModelRegistrationHandler {
-        void register(ModelConfig config);
+    /**
+     * 动态创建 ScoringModel
+     */
+    public ScoringModel createScoringModel(ModelConfig config) {
+        log.debug("Creating ScoringModel: {} (provider: {})", config.getModelName(), config.getModelProvider());
+        return modelFactory.createScoringModel(config);
     }
 }
