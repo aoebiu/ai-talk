@@ -45,7 +45,6 @@ public class ChatController {
             return Flux.error(new IllegalArgumentException("sessionId 不能为空"));
         }
 
-        log.info("收到流式对话请求 - sessionId: {}, message: {}", request.getSessionId(), request.getMessage());
         return streamResponse(request);
     }
 
@@ -65,7 +64,6 @@ public class ChatController {
                 // 调用 ChatService 的流式方法
                 chatService.chatStreaming(chatRequest.getSessionId(), chatRequest.getMessage(), handler, assembledModels, toolMap);
             } catch (Exception e) {
-                log.error("组装模型配置失败", e);
                 sink.error(e);
             }
         });

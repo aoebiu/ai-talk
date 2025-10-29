@@ -53,10 +53,7 @@ public class OpenAiCompatibleController {
             return Flux.error(new IllegalArgumentException("messages 不能为空"));
         }
 
-        log.info("收到 OpenAI请求 - model: {}, messages: {}",
-                request.getModel(), request.getMessages().size());
-
-        ChatRequest chatRequest = convertToInternalRequest(request);
+        ChatRequest chatRequest = buildInternalRequest(request);
         return streamResponse(chatRequest, request.getModel());
 
     }
@@ -80,7 +77,6 @@ public class OpenAiCompatibleController {
 
                 chatService.chatStreaming(chatRequest.getSessionId(),chatRequest.getMessage(), handler, assembledModels,toolMap);
             } catch (Exception e) {
-                log.error("组装模型配置失败", e);
                 sink.error(e);
             }
         })
@@ -90,20 +86,24 @@ public class OpenAiCompatibleController {
     /**
      * 将 OpenAI 请求转换为内部请求格式
      */
-    private ChatRequest convertToInternalRequest(OpenApiChatRequest openAiRequest) {
+    private ChatRequest buildInternalRequest(OpenApiChatRequest openAiRequest) {
         ChatRequest chatRequest = new ChatRequest();
         chatRequest.setInDB(false);
         chatRequest.setSessionId(DEFAULT_SESSION);
         chatRequest.setOptionId(DEFAULT_OPTION_ID);
 
-        // 获取最后一条用户消息作为当前消息
-        String message = openAiRequest.getMessages().stream()
-                .filter(msg -> "user".equals(msg.getRole()))
-                .reduce((first, second) -> second)
-                .map(OpenApiChatRequest.Message::getContent)
-                .orElse("");
+        // 将所有消息按照角色和内容组合成一个字符串
+        StringBuilder messageBuilder = new StringBuilder();
+        for (OpenApiChatRequest.Message msg : openAiRequest.getMessages()) {
+            String role = msg.getRole();
+            String content = msg.getContent();
 
-        chatRequest.setMessage(message);
+            if (content != null && !content.isEmpty()) {
+                messageBuilder.append(role).append(": ").append(content).append("\n");
+            }
+        }
+
+        chatRequest.setMessage(messageBuilder.toString().trim());
         return chatRequest;
     }
 }

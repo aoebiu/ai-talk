@@ -1,6 +1,9 @@
 package info.mengnan.aitalk.rag;
 
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.service.*;
+
+import java.util.List;
 
 public interface AssistantUnique {
 

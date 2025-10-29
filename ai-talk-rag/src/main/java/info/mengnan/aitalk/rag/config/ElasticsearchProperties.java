@@ -12,11 +12,6 @@ public class ElasticsearchProperties {
     private String username;
     private String password;
 
-    /**
-     * 默认索引名称（用于向后兼容）
-     * 如果配置文件中指定了 indexName，将在动态扫描的基础上确保该索引存在
-     */
-    private String indexName = "ai-talk-vectors";
 
     /**
      * 可选：手动指定要管理的索引列表
@@ -26,7 +21,6 @@ public class ElasticsearchProperties {
 
     /**
      * 是否启用自动扫描所有索引
-     * 默认为 true，会自动发现所有非系统索引
      */
     private boolean autoDiscoverIndices = true;
 

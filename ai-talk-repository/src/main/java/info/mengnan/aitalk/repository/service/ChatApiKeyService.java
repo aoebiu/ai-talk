@@ -17,6 +17,10 @@ public class ChatApiKeyService {
         return mapper.findById(id);
     }
 
+    public List<ChatApiKey> findByIds(List<Long> id) {
+        return mapper.findByIds(id);
+    }
+
     public List<ChatApiKey> findAll() {
         return mapper.findALl();
     }

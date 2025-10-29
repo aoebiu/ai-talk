@@ -9,9 +9,13 @@ import dev.langchain4j.data.document.parser.apache.poi.ApachePoiDocumentParser;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import info.mengnan.aitalk.rag.container.RagContainer;
+import info.mengnan.aitalk.common.param.ModelType;
+import info.mengnan.aitalk.rag.config.ModelConfig;
 import info.mengnan.aitalk.rag.container.assemble.DynamicEmbeddingStoreRegistry;
+import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
+import info.mengnan.aitalk.server.service.ModelConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,10 +36,14 @@ import java.util.List;
 public class DocumentEmbedding {
 
     private final DynamicEmbeddingStoreRegistry embeddingStoreRegistry;
-    private final RagContainer ragContainer;
+    private final ModelRegistry modelRegistry;
+    private final ModelConfigService modelConfigService;
 
     @Value("${file.upload-dir:./uploads}")
     private String uploadDir;
+
+    @Value("${embedding.model-name:text-embedding-v2}")
+    private String embeddingModelName;
 
     /**
      * 上传文件并进行向量化存储
@@ -49,10 +57,12 @@ public class DocumentEmbedding {
 
         // 保存文件
         String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null) return null;
+        if (originalFilename == null) {
+            log.error("文件名为空");
+            return null;
+        }
 
         Path filePath = uploadPath.resolve(originalFilename);
-
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
         // 解析文档
@@ -68,12 +78,25 @@ public class DocumentEmbedding {
         List<TextSegment> segments = splitter.split(document);
         log.info("文档已分割成 {} 个片段", segments.size());
 
-        String storeBean = embeddingStoreRegistry.registerEmbeddingStoreBean(originalFilename);
-        EmbeddingStore<TextSegment> embeddingStore = ragContainer.getEmbeddingStore(storeBean);
+        // 动态创建 EmbeddingStore（使用文件名作为索引名）
+        String indexName = sanitizeIndexName(originalFilename);
+        EmbeddingStore<TextSegment> embeddingStore = embeddingStoreRegistry.createEmbeddingStore(indexName);
 
-        List<Embedding> embeddings = ragContainer.getEmbeddingModel("embedding:text-embedding-v2").embedAll(segments).content();
+        // 从数据库查询 EmbeddingModel 配置
+        ModelConfig embeddingConfig = modelConfigService.findModel(embeddingModelName, ModelType.EMBEDDING);
+        if (embeddingConfig == null) {
+            log.error("未找到 Embedding 模型配置: {}", embeddingModelName);
+            throw new RuntimeException("Embedding 模型配置不存在: " + embeddingModelName);
+        }
+
+        // 动态创建 EmbeddingModel
+        EmbeddingModel embeddingModel = modelRegistry.createEmbeddingModel(embeddingConfig);
+
+        // 生成向量并存储
+        List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
         embeddingStore.addAll(embeddings, segments);
 
+        log.info("文档 {} 已成功向量化并存储到索引 {}", originalFilename, indexName);
         return originalFilename;
     }
 
@@ -85,7 +108,7 @@ public class DocumentEmbedding {
             case ".pdf" -> new ApachePdfBoxDocumentParser();
             case ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx" -> new ApachePoiDocumentParser();
             case ".md", ".txt" -> new TextDocumentParser();
-            default -> throw new RuntimeException("");
+            default -> throw new RuntimeException("不支持的文件类型: " + extension);
         };
 
         try (InputStream inputStream = Files.newInputStream(filePath)) {
@@ -101,5 +124,20 @@ public class DocumentEmbedding {
             return "";
         }
         return filename.substring(filename.lastIndexOf("."));
+    }
+
+    /**
+     * 清理文件名，使其适合作为 Elasticsearch 索引名
+     * ES 索引名要求：小写、不能包含特殊字符
+     */
+    private String sanitizeIndexName(String filename) {
+        // 移除文件扩展名
+        String nameWithoutExt = filename.contains(".")
+                ? filename.substring(0, filename.lastIndexOf("."))
+                : filename;
+
+        // 转小写，替换特殊字符为下划线
+        return nameWithoutExt.toLowerCase()
+                .replaceAll("[^a-z0-9_-]", "_");
     }
 }
