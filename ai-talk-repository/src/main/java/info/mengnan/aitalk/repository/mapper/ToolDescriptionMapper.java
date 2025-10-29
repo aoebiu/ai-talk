@@ -11,7 +11,7 @@ import java.util.List;
 @Mapper
 public interface ToolDescriptionMapper extends BaseMapper<ChatToolDescription> {
 
-    @Delete("DELETE FROM tool_description WHERE id = #{id}")
+    @Delete("DELETE FROM chat_tool_description WHERE id = #{id}")
     int deleteById(Long id);
 
     default ChatToolDescription findById(Long id) {

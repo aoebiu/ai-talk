@@ -24,7 +24,7 @@ public class DocumentController {
      * 上传文档并向量化
      */
     @PostMapping("/upload")
-    public R uploadDocument(@RequestParam("file") MultipartFile file) {
+    public R uploadDocument(@RequestParam("file") MultipartFile file, String type) {
         if (file.isEmpty()) {
             return R.error("文件不能为空");
         }
@@ -32,7 +32,7 @@ public class DocumentController {
 
         String savedFileName = null;
         try {
-            savedFileName = documentService.uploadAndProcessDocument(file);
+            savedFileName = documentService.uploadAndProcessDocument(file, type);
         } catch (Exception e) {
             log.error("文件上传失败", e);
             return R.error("文件上传失败:" + e.getMessage());

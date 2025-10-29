@@ -48,7 +48,7 @@ public class DocumentEmbedding {
     /**
      * 上传文件并进行向量化存储
      */
-    public String uploadAndProcessDocument(MultipartFile file) throws IOException {
+    public String uploadAndProcessDocument(MultipartFile file, String type) throws IOException {
         // 创建上传目录
         Path uploadPath = Paths.get(uploadDir);
         if (!Files.exists(uploadPath)) {
@@ -69,12 +69,14 @@ public class DocumentEmbedding {
         String fileExtension = getFileExtension(originalFilename);
         Document document = parseDocument(filePath, fileExtension);
 
-        // 文档分割
-        // todo 遵循不同文件类型,不同分割数量
-        DocumentSplitter splitter = DocumentSplitters.recursive(
-                300,  // 每个片段最大字符数
-                50    // 片段重叠字符数
-        );
+        DocumentSplitter splitter = switch (type.toLowerCase()) {
+            case "short_text" -> DocumentSplitters.recursive(150, 20);
+            case "paper" -> DocumentSplitters.recursive(400, 40);
+            case "contract" -> DocumentSplitters.recursive(300, 0);
+            case "novel" -> DocumentSplitters.recursive(750, 50);
+            default -> DocumentSplitters.recursive(300, 50);
+        };
+
         List<TextSegment> segments = splitter.split(document);
         log.info("文档已分割成 {} 个片段", segments.size());
 
