@@ -153,22 +153,20 @@ public class ChatService {
                     indexNames,
                     assembledModels);
 
+            // 配置创建合适的 QueryRouter
             QueryRouter queryRouter;
             if (contentRetrieverMap.isEmpty()) {
-                queryRouter = null;
+                queryRouter = new DefaultQueryRouter();
+            } else if (assembledModels.chatModel() == null) {
+                queryRouter = new DefaultQueryRouter(contentRetrieverMap.keySet());
             } else {
-                if (assembledModels.chatModel() != null) {
-                    // 从数据库查询 ChatModel 配置并动态创建
-                    ModelConfig chatConfig = modelConfigProvider.findModel(
-                            assembledModels.chatModel().getModelName(),
-                            CHAT);
+                ModelConfig chatConfig = modelConfigProvider.findModel(
+                        assembledModels.chatModel().getModelName(),
+                        CHAT);
 
-                    if (chatConfig != null) {
-                        ChatModel chatModel = modelRegistry.createChatModel(chatConfig);
-                        queryRouter = new LanguageModelQueryRouter(chatModel, contentRetrieverMap);
-                    } else {
-                        queryRouter = new DefaultQueryRouter(contentRetrieverMap.keySet());
-                    }
+                if (chatConfig != null) {
+                    ChatModel chatModel = modelRegistry.createChatModel(chatConfig);
+                    queryRouter = new LanguageModelQueryRouter(chatModel, contentRetrieverMap);
                 } else {
                     queryRouter = new DefaultQueryRouter(contentRetrieverMap.keySet());
                 }
