@@ -8,6 +8,7 @@ import co.elastic.clients.transport.rest_client.RestClientTransport;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore;
+import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchRequestFailedException;
 import info.mengnan.aitalk.rag.config.ElasticsearchProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
@@ -48,8 +49,7 @@ public class DynamicEmbeddingStoreRegistry {
             restClient.close();
             return indexNames;
         } catch (Exception e) {
-            log.error("Failed to query Elasticsearch indices", e);
-            return new ArrayList<>();
+            throw new ElasticsearchRequestFailedException("Failed to query Elasticsearch indices", e);
         }
     }
 
