@@ -1,0 +1,21 @@
+
+
+${AnsiColor.BRIGHT_RED}
+                                   ___                 ,--,         ,-.
+${AnsiColor.BRIGHT_YELLOW}               ,--,              ,--.'|_             ,--.'|     ,--/ /|
+             ,--.'|      ,---,.  |  | :,'            |  | :   ,--. :/ |
+${AnsiColor.BRIGHT_GREEN}             |  |,     ,'  .' |  :  : ' :            :  : '   :  : ' /
+   ,--.--.   `--'_   ,---.'   ,.;__,'  /    ,--.--.  |  ' |   |  '  /
+${AnsiColor.BRIGHT_CYAN}  /       \  ,' ,'|  |   |    ||  |   |    /       \ '  | |   '  |  :
+ .--.  .-. | '  | |  :   :  .' :__,'| :   .--.  .-. ||  | :   |  |   \
+${AnsiColor.BRIGHT_BLUE}  \__\/: . . |  | :  :   |.'     '  : |__  \__\/: . .'  : |__ '  : |. \
+  ," .--.; | '  : |__`---'       |  | '.'| ," .--.; ||  | '.'||  | ' \ \
+${AnsiColor.BRIGHT_MAGENTA} /  /  ,.  | |  | '.'|           ;  :    ;/  /  ,.  |;  :    ;'  : |--'
+;  :   .'   \;  :    ;           |  ,   /;  :   .'   \  ,   / ;  |,'
+${AnsiColor.BRIGHT_RED}|  ,     .-./|  ,   /             ---`-' |  ,     .-./---`-'  '--'
+ `--`---'     ---`-'                      `--`---'
+
+${AnsiColor.BRIGHT_GREEN}
+Application: ${spring.application.name}
+Spring Boot Version: ${spring-boot.version}
+${AnsiColor.DEFAULT}
