@@ -39,7 +39,9 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import static dev.langchain4j.rag.query.router.LanguageModelQueryRouter.FallbackStrategy.DO_NOT_ROUTE;
 import static info.mengnan.aitalk.common.param.ModelType.*;
+import static info.mengnan.aitalk.rag.constant.promptTemplate.PromptTemplateConstant.*;
 
 
 @Slf4j
@@ -166,7 +168,8 @@ public class ChatService {
 
                 if (chatConfig != null) {
                     ChatModel chatModel = modelRegistry.createChatModel(chatConfig);
-                    queryRouter = new LanguageModelQueryRouter(chatModel, contentRetrieverMap);
+                    queryRouter = new LanguageModelQueryRouter(chatModel, contentRetrieverMap,
+                            QUERY_ROUTER_PROMPT_TEMPLATE, DO_NOT_ROUTE);
                 } else {
                     queryRouter = new DefaultQueryRouter(contentRetrieverMap.keySet());
                 }

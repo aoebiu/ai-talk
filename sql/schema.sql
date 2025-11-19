@@ -174,4 +174,63 @@ VALUES (2, 'queryDatabase', '通过属性查询数据库用户', '{\"queryType\"
         ' function execute(params) {\n    var queryType = params.queryType;\n    var queryValue = params.queryValue;\n    // 模拟数据库数据\n    var users = [\n        { id: \"1001\", username: \"zhangsan\", email: \"zhangsan@example.com\", role: \"Admin\" },\n        { id: \"1002\", username: \"lisi\", email: \"lisi@example.com\", role: \"User\" },\n        { id: \"1003\", username: \"wangwu\", email: \"wangwu@example.com\", role: \"User\" },\n        { id: \"1004\", username: \"zhaoliu\", email: \"zhaoliu@example.com\", role: \"Manager\" }\n    ];\n    // 执行查询\n    var result = null;\n    for (var i = 0; i < users.length; i++) {\n        var user = users[i];\n        if (user[queryType] === queryValue) {\n            result = user;\n            break;\n        }\n    }\n    if (!result) {\n        return \"❌ 未找到符合条件的用户: \" + queryType + \" = \" + queryValue;\n    }\n    return \"👤 用户信息:\\n\" +\n           \"🆔 ID: \" + result.id + \"\\n\" +\n           \"👤 用户名: \" + result.username + \"\\n\" +\n           \"📧 邮箱: \" + result.email + \"\\n\" +\n           \"🔑 角色: \" + result.role;\n}');
 COMMIT;
 
+-- ----------------------------
+-- Table structure for members
+-- ----------------------------
+DROP TABLE IF EXISTS `chat_member`;
+CREATE TABLE `chat_member`
+(
+    `id`         bigint(20)   NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `username`   varchar(50)  NOT NULL COMMENT '用户名',
+    `password`   varchar(255) NOT NULL COMMENT '密码(MD5加密)',
+    `nickname`   varchar(100)      DEFAULT NULL COMMENT '昵称',
+    `email`      varchar(100)      DEFAULT NULL COMMENT '邮箱',
+    `phone`      varchar(20)       DEFAULT NULL COMMENT '手机号',
+    `avatar`     varchar(500)      DEFAULT NULL COMMENT '头像URL',
+    `status`     int(11)           DEFAULT '1' COMMENT '状态: 1-正常, 0-禁用',
+    `created_at` timestamp    NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` timestamp    NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted`    int(11)           DEFAULT '0' COMMENT '逻辑删除: 0-未删除, 1-已删除',
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci COMMENT ='会员表';
+
+-- ----------------------------
+-- Records of members
+-- ----------------------------
+BEGIN;
+COMMIT;
+
+-- ----------------------------
+-- Table structure for api_keys
+-- ----------------------------
+DROP TABLE IF EXISTS `chat_project_api_key`;
+CREATE TABLE `chat_project_api_key`
+(
+    `id`           bigint(20)   NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `api_key`      varchar(255) NOT NULL COMMENT 'API Key，以 sk- 开头',
+    `member_id`    bigint(20)   NOT NULL COMMENT '所属用户ID',
+    `name`         varchar(100)      DEFAULT NULL COMMENT 'API Key 名称/描述',
+    `status`       int(11)           DEFAULT '1' COMMENT '状态: 1-启用, 0-禁用',
+    `expires_at`   timestamp    NULL DEFAULT NULL COMMENT '过期时间（可选）',
+    `last_used_at` timestamp    NULL DEFAULT NULL COMMENT '最后使用时间',
+    `created_at`   timestamp    NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`   timestamp    NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted`      int(11)           DEFAULT '0' COMMENT '逻辑删除: 0-未删除, 1-已删除',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_api_key` (`api_key`),
+    KEY `idx_member_id` (`member_id`),
+    KEY `idx_status` (`status`),
+    CONSTRAINT `fk_api_key_member` FOREIGN KEY (`member_id`) REFERENCES `members` (`id`) ON DELETE CASCADE
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci COMMENT ='OpenAI API Key 表';
+
+-- ----------------------------
+-- Records of api_keys
+-- ----------------------------
+BEGIN;
+COMMIT;
+
 SET FOREIGN_KEY_CHECKS = 1;

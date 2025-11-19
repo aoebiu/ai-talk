@@ -6,6 +6,7 @@ import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.query.Query;
 import info.mengnan.aitalk.common.param.ModelType;
 import info.mengnan.aitalk.rag.config.ModelConfig;
+import info.mengnan.aitalk.rag.constant.promptTemplate.PromptTemplateConstant;
 import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
 import info.mengnan.aitalk.server.service.ModelConfigService;
@@ -29,17 +30,6 @@ import static info.mengnan.aitalk.common.param.MessageRole.USER;
 @Component
 public class ChatHistoryCompressing {
 
-    public static final PromptTemplate DEFAULT_PROMPT_TEMPLATE = PromptTemplate.from(
-            """
-            请将以下对话内容进行总结和压缩，保留关键信息和上下文。总结应该简洁但要包含重要的讨论点和结论。
-
-            对话内容:
-            {{query}}
-
-            请提供一个简明的总结:
-            """
-    );
-
     private final PromptTemplate promptTemplate;
     private final ModelRegistry modelRegistry;
     private final ModelConfigService modelConfigService;
@@ -52,7 +42,7 @@ public class ChatHistoryCompressing {
                                   PromptTemplate promptTemplate,
                                   ModelRegistry modelRegistry,
                                   ModelConfigService modelConfigService) {
-        this.promptTemplate = promptTemplate != null ? promptTemplate : DEFAULT_PROMPT_TEMPLATE;
+        this.promptTemplate = promptTemplate != null ? promptTemplate : PromptTemplateConstant.COMPRESSION_PROMPT_TEMPLATE;
         this.modelRegistry = modelRegistry;
         this.modelConfigService = modelConfigService;
     }
@@ -73,11 +63,11 @@ public class ChatHistoryCompressing {
      */
     public String compressHistory(List<ChatMessage> messagesToCompress) {
         if (messagesToCompress == null || messagesToCompress.isEmpty()) {
-            log.warn("压缩消息列表为空");
+            log.warn("Compressed message list is empty");
             return "";
         }
 
-        log.info("开始压缩 {} 条历史消息", messagesToCompress.size());
+        log.info("Start compressing {} historical messages", messagesToCompress.size());
 
         try {
             // 构建压缩提示词
@@ -88,12 +78,12 @@ public class ChatHistoryCompressing {
             ChatModel chatModel = getChatModel();
             String compressedText = chatModel.chat(prompt.text());
 
-            log.info("消息压缩完成，原始消息数: {}, 压缩后长度: {}",
+            log.info("Message compression completed, original message number: {}, compressed length: {}",
                     messagesToCompress.size(), compressedText.length());
 
             return compressedText;
         } catch (Exception e) {
-            log.error("压缩历史消息失败", e);
+            log.error("Failed to compress historical messages", e);
             throw new RuntimeException("压缩历史消息失败: " + e.getMessage(), e);
         }
     }

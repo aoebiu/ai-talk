@@ -24,17 +24,18 @@ public class DocumentController {
      * 上传文档并向量化
      */
     @PostMapping("/upload")
-    public R uploadDocument(@RequestParam("file") MultipartFile file, String type) {
+    public R uploadDocument(@RequestParam("file") MultipartFile file,
+                            @RequestParam("type") String type) {
         if (file.isEmpty()) {
             return R.error("文件不能为空");
         }
-        log.info("接收到文件上传请求: {}", file.getOriginalFilename());
+        log.info("File upload request received: {}", file.getOriginalFilename());
 
         String savedFileName = null;
         try {
             savedFileName = documentService.uploadAndProcessDocument(file, type);
         } catch (Exception e) {
-            log.error("文件上传失败", e);
+            log.error("file Upload Failed", e);
             return R.error("文件上传失败:" + e.getMessage());
         }
 
