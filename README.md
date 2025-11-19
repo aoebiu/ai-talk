@@ -15,7 +15,7 @@
 - JVM 与运行环境：GraalVM 17（需安装 GraalJS）
 - 后端框架：Spring Boot 3.5.6
 - AI 框架：LangChain4j 1.6
-- 存储与检索：Elasticsearch、MySQL
+- 存储与检索：Elasticsearch8.19.7、MySQL8.0.18
 
 安装 GraalJS：
 ```bash

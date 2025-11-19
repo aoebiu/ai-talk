@@ -58,7 +58,6 @@ public class DocumentEmbedding {
         // 保存文件
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null) {
-            log.error("文件名为空");
             return null;
         }
 
@@ -78,7 +77,7 @@ public class DocumentEmbedding {
         };
 
         List<TextSegment> segments = splitter.split(document);
-        log.info("文档已分割成 {} 个片段", segments.size());
+        log.info("document split into {} fragments", segments.size());
 
         // 动态创建 EmbeddingStore（使用文件名作为索引名）
         String indexName = sanitizeIndexName(originalFilename);
@@ -87,7 +86,7 @@ public class DocumentEmbedding {
         // 从数据库查询 EmbeddingModel 配置
         ModelConfig embeddingConfig = modelConfigService.findModel(embeddingModelName, ModelType.EMBEDDING);
         if (embeddingConfig == null) {
-            log.error("未找到 Embedding 模型配置: {}", embeddingModelName);
+            log.error("embedding Model Configuration Not Found: {}", embeddingModelName);
             throw new RuntimeException("Embedding 模型配置不存在: " + embeddingModelName);
         }
 
@@ -98,7 +97,7 @@ public class DocumentEmbedding {
         List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
         embeddingStore.addAll(embeddings, segments);
 
-        log.info("文档 {} 已成功向量化并存储到索引 {}", originalFilename, indexName);
+        log.info("Document {} was successfully vectorized and stored to the index {}", originalFilename, indexName);
         return originalFilename;
     }
 
@@ -139,7 +138,6 @@ public class DocumentEmbedding {
                 : filename;
 
         // 转小写，替换特殊字符为下划线
-        return nameWithoutExt.toLowerCase()
-                .replaceAll("[^a-z0-9_-]", "_");
+        return nameWithoutExt.toLowerCase().replaceAll("[' \"*,/<>?\\\\|]", "");
     }
 }

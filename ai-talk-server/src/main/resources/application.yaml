@@ -34,13 +34,27 @@ logging:
     info.mengnan.aitalk: INFO
 
 # Elasticsearch配置
-#elasticsearch:
-#  host: ${ES_HOST:127.0.0.1}
-#  port: ${ES_PORT:9200}
-#  username: ${ES_USERNAME:}
-#  password: ${ES_PASSWORD:}
+elasticsearch:
+  host: ${ES_HOST:127.0.0.1}
+  port: ${ES_PORT:9200}
+  username: ${ES_USERNAME:}
+  password: ${ES_PASSWORD:}
 
 # 文件存储路径
 file:
   upload-dir: ./uploads
+
+# Sa-Token配置
+sa-token:
+  token-name: satoken
+  timeout: 2592000
+  active-timeout: -1
+  is-concurrent: true
+  is-share: true
+  token-style: uuid
+  is-log: false
+  is-print: false
+  is-read-cookie: false
+  is-read-header: true
+  token-prefix: Bearer
 

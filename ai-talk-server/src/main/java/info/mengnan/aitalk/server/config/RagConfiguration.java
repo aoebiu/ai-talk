@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Configuration;
 public class RagConfiguration {
 
     /**
-     * 创建Elasticsearch配置属性Bean
+     * 创建Elasticsearch配置属性Bean·
      */
     @Bean
     @ConfigurationProperties(prefix = "elasticsearch")

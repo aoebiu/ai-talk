@@ -40,10 +40,13 @@ public class OpenAiCompatibleController {
 
     /**
      * OpenAI 兼容的聊天接口
+     * 鉴权说明：
+     * - 此接口通过 OpenAiApiKeyInterceptor 进行鉴权
+     * - 需要在 Authorization header 中提供 sk- 开头的 API Key
+     * - 格式：Authorization: sk-xxx
      */
     @PostMapping(value = "/chat/completions", produces = MediaType.APPLICATION_NDJSON_VALUE)
-    public Flux<String> chatCompletions(@RequestBody OpenApiChatRequest request,
-                                        @RequestHeader(value = "Authorization", required = false) String authorization) {
+    public Flux<String> chatCompletions(@RequestBody OpenApiChatRequest request) {
 
         if (!request.getStream()) {
             return Flux.error(new UnsupportedOperationException("当前仅支持流式响应,请设置 stream=true"));

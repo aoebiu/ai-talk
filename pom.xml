@@ -28,6 +28,7 @@
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <elasticsearch.version>8.17.4</elasticsearch.version>
         <lombok.version>1.18.34</lombok.version>
+        <sa-token.version>1.39.0</sa-token.version>
     </properties>
 
     <dependencyManagement>
@@ -132,6 +133,13 @@
                 <groupId>co.elastic.clients</groupId>
                 <artifactId>elasticsearch-java</artifactId>
                 <version>${elasticsearch.version}</version>
+            </dependency>
+
+            <!-- Sa-Token -->
+            <dependency>
+                <groupId>cn.dev33</groupId>
+                <artifactId>sa-token-spring-boot3-starter</artifactId>
+                <version>${sa-token.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

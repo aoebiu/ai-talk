@@ -7,6 +7,7 @@ import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.injector.ContentInjector;
 import info.mengnan.aitalk.common.util.Cast;
+import info.mengnan.aitalk.rag.constant.promptTemplate.PromptTemplateConstant;
 
 import java.util.HashMap;
 import java.util.List;
@@ -14,23 +15,13 @@ import java.util.Map;
 
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 
-
 public class DefaultContentInjector implements ContentInjector {
-
-    public static final PromptTemplate DEFAULT_PROMPT_TEMPLATE = PromptTemplate.from(
-            """
-                        {{userMessage}}
-
-                        使用以下信息进行回答:
-                        {{contents}}
-                    """
-    );
 
     private final PromptTemplate promptTemplate;
 
     public DefaultContentInjector(PromptTemplate promptTemplate) {
         if (promptTemplate == null) {
-            promptTemplate = DEFAULT_PROMPT_TEMPLATE;
+            promptTemplate = PromptTemplateConstant.CONTENT_INJECTOR_PROMPT_TEMPLATE;
         }
         this.promptTemplate = promptTemplate;
     }
