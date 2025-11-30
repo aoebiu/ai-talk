@@ -28,14 +28,14 @@ public class ModelConfigService {
      * @param modelType   模型类型
      * @return ModelConfig
      */
-    public ModelConfig findModel(String modelName, ModelType modelType) {
+    public ModelConfig findModel(Long memberId, String modelName, ModelType modelType) {
         if (modelName == null || modelType == null) {
             log.warn("Model name or model type is null");
             return null;
         }
 
         try {
-            List<ChatApiKey> apiKeys = chatApiKeyService.findAll();
+            List<ChatApiKey> apiKeys = chatApiKeyService.findAll(memberId);
 
             ChatApiKey matchedKey = apiKeys.stream()
                     .filter(key -> modelType.n().equals(key.getKeyType()) && modelName.equals(key.getModelName()))

@@ -2,8 +2,11 @@ package info.mengnan.aitalk.server.controller;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.service.tool.ToolExecutor;
+import info.mengnan.aitalk.common.json.JSONObject;
 import info.mengnan.aitalk.rag.container.assemble.AssembledModels;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
+import info.mengnan.aitalk.repository.entity.ChatProjectApiKey;
+import info.mengnan.aitalk.repository.service.ApiKeyService;
 import info.mengnan.aitalk.server.param.ChatRequest;
 import info.mengnan.aitalk.rag.ChatService;
 import info.mengnan.aitalk.server.handler.OpenAiStreamingResponseHandler;
@@ -33,6 +36,7 @@ public class OpenAiCompatibleController {
     private final ChatService chatService;
     private final RagAdapterService ragAdapterService;
     private final ToolAdapterService toolAdapterService;
+    private final ApiKeyService apiKeyService;
 
     // TODO 全局配置中获取
     private final static Long DEFAULT_OPTION_ID = 1L;
@@ -46,8 +50,10 @@ public class OpenAiCompatibleController {
      * - 格式：Authorization: sk-xxx
      */
     @PostMapping(value = "/chat/completions", produces = MediaType.APPLICATION_NDJSON_VALUE)
-    public Flux<String> chatCompletions(@RequestBody OpenApiChatRequest request) {
+    public Flux<String> chatCompletions(@RequestBody OpenApiChatRequest request,
+                                        @RequestHeader(value = "Authorization", required = false) String authorization)  {
 
+        String apiKey = authorization.replace("Bearer ", "").trim();
         if (!request.getStream()) {
             return Flux.error(new UnsupportedOperationException("当前仅支持流式响应,请设置 stream=true"));
         }
@@ -57,6 +63,9 @@ public class OpenAiCompatibleController {
         }
 
         ChatRequest chatRequest = buildInternalRequest(request);
+
+        ChatProjectApiKey projectApiKey = apiKeyService.findByApiKey(apiKey);
+        chatRequest.setMemberId(projectApiKey.getMemberId());
         return streamResponse(chatRequest, request.getModel());
 
     }
@@ -78,7 +87,11 @@ public class OpenAiCompatibleController {
                 StreamingResponseHandler handler = new OpenAiStreamingResponseHandler(
                         sink, requestId, timestamp, model);
 
-                chatService.chatStreaming(chatRequest.getSessionId(),chatRequest.getMessage(), handler, assembledModels,toolMap);
+                chatService.chatStreaming(chatRequest.getMemberId(),
+                        chatRequest.getSessionId(),
+                        chatRequest.getMessage(),
+                        handler,
+                        assembledModels,toolMap);
             } catch (Exception e) {
                 sink.error(e);
             }
