@@ -79,7 +79,7 @@ public class ChatHistoryCompressing {
             String conversationText = buildConversationText(messagesToCompress);
             Prompt prompt = createPrompt(Query.from(conversationText));
 
-            ChatSession chatSession = chatSessionService.findLastBySessionId(messagesToCompress.get(0).getSessionId());
+            ChatSession chatSession = chatSessionService.findBySessionId(messagesToCompress.get(0).getSessionId());
             // 动态创建 ChatModel 并调用 LLM 进行总结
             ChatModel chatModel = getChatModel(chatSession.getMemberId());
             String compressedText = chatModel.chat(prompt.text());

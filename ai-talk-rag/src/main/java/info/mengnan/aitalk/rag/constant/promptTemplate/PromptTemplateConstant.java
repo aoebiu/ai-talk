@@ -42,4 +42,16 @@ public class PromptTemplateConstant {
                         {{contents}}
                     """
     );
+
+    public static final PromptTemplate TITLE_GENERATION_PROMPT_TEMPLATE = PromptTemplate.from("""
+            Generate a concise title that summarizes the following content.
+            The title must be in the same language as the provided content.
+            Ensure the title is under 10 words and captures the main essence.
+            
+            Content:
+            {{query}}
+            
+            Title:
+            """
+    );
 }

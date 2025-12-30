@@ -1,6 +1,7 @@
 package info.mengnan.aitalk.repository.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import info.mengnan.aitalk.repository.entity.ChatSession;
 import info.mengnan.aitalk.repository.mapper.ChatSessionMapper;
 import lombok.RequiredArgsConstructor;
@@ -12,14 +13,20 @@ public class ChatSessionService {
 
     private final ChatSessionMapper mapper;
 
-    public ChatSession findLastBySessionId(String sessionId) {
+    public ChatSession findBySessionId(String sessionId) {
         return mapper.selectOne(new LambdaQueryWrapper<ChatSession>()
-                .eq(ChatSession::getChatSessionId, sessionId).last("limit 1"));
+                .eq(ChatSession::getChatSessionId, sessionId));
     }
 
-    public ChatSession createChat(ChatSession chatSession) {
+    public void createChat(ChatSession chatSession) {
          mapper.insert(chatSession);
-         return chatSession;
+    }
+
+    public void updateChatTitle(String sessionId, String title) {
+        ChatSession chatSession = new ChatSession();
+        chatSession.setTitle(title);
+        mapper.update(chatSession, new LambdaUpdateWrapper<ChatSession>()
+                .eq(ChatSession::getChatSessionId, sessionId));
     }
 
     public ChatSession findLastByMemberId(Long memberId) {

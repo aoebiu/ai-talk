@@ -19,9 +19,12 @@ public interface ChatApiKeyMapper extends BaseMapper<ChatApiKey> {
     }
 
     default List<ChatApiKey> findALl(Long memberId) {
+        if (memberId == null) {
+            memberId = 0L;
+        }
         LambdaQueryWrapper<ChatApiKey> qw = new LambdaQueryWrapper<ChatApiKey>()
-                .in(ChatApiKey::getMemberId, memberId);
-        return selectList(null);
+                .eq(ChatApiKey::getMemberId, memberId);
+        return selectList(qw);
     }
 
     default List<ChatApiKey> findByIds(List<Long> ids) {

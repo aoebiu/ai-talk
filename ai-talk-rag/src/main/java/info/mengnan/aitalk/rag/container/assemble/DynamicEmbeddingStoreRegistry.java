@@ -34,6 +34,7 @@ public class DynamicEmbeddingStoreRegistry {
 
     public DynamicEmbeddingStoreRegistry(ElasticsearchProperties properties) {
         this.properties = properties;
+
     }
 
     /**
@@ -43,7 +44,7 @@ public class DynamicEmbeddingStoreRegistry {
      */
     public List<String> queryAllIndexNames() {
         try {
-            RestClient restClient = createRestClient(this.properties);
+            RestClient restClient =  createRestClient(this.properties);
             List<String> indexNames = queryAllIndices(restClient, properties);
             log.info("Found {} indices in Elasticsearch: {}", indexNames.size(), indexNames);
             restClient.close();
@@ -116,22 +117,19 @@ public class DynamicEmbeddingStoreRegistry {
         if (properties.isAutoDiscoverIndices()) {
             try (RestClientTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper())) {
                 ElasticsearchClient client = new ElasticsearchClient(transport);
-
                 // 使用 cat indices API 查询所有索引
                 IndicesResponse response = client.cat().indices();
 
                 for (IndicesRecord record : response.valueBody()) {
                     String indexName = record.index();
-                    // 过滤系统索引（以 . 开头的索引）
-                    if (indexName != null && !indexName.startsWith(".")) {
-                        // 如果配置了索引名称过滤模式，进行过滤
-                        if (properties.getIndexNamePattern() != null && !properties.getIndexNamePattern().isEmpty()) {
-                            if (indexName.matches(properties.getIndexNamePattern())) {
-                                indexNames.add(indexName);
-                            }
-                        } else {
+                    if (indexName == null) continue;
+                    // 如果配置了索引名称过滤模式，进行过滤
+                    if (properties.getIndexNamePattern() != null && !properties.getIndexNamePattern().isEmpty()) {
+                        if (indexName.matches(properties.getIndexNamePattern())) {
                             indexNames.add(indexName);
                         }
+                    } else {
+                        indexNames.add(indexName);
                     }
                 }
             }

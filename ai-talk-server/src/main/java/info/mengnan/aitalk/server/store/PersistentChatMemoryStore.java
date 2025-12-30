@@ -6,7 +6,6 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
 import info.mengnan.aitalk.repository.service.ChatMessageService;
-import info.mengnan.aitalk.repository.service.ChatSessionService;
 import info.mengnan.aitalk.server.content.ChatHistoryCompressing;
 import info.mengnan.aitalk.server.content.TokenCounting;
 import lombok.RequiredArgsConstructor;

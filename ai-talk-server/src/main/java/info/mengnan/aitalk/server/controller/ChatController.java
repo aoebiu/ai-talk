@@ -3,8 +3,10 @@ package info.mengnan.aitalk.server.controller;
 import cn.dev33.satoken.stp.StpUtil;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.service.tool.ToolExecutor;
+import info.mengnan.aitalk.common.param.ModelType;
 import info.mengnan.aitalk.rag.container.assemble.AssembledModels;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
+import info.mengnan.aitalk.rag.service.DirectModelInvoker;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
 import info.mengnan.aitalk.repository.entity.ChatSession;
 import info.mengnan.aitalk.repository.service.ChatMessageService;
@@ -13,7 +15,8 @@ import info.mengnan.aitalk.server.param.ChatRequest;
 import info.mengnan.aitalk.server.param.R;
 import info.mengnan.aitalk.rag.ChatService;
 import info.mengnan.aitalk.server.handler.FluxStreamingResponseHandler;
-import info.mengnan.aitalk.server.param.chat.ChatSessionResult;
+import info.mengnan.aitalk.server.param.chat.ChatConversations;
+import info.mengnan.aitalk.server.param.chat.ChatSessionResponse;
 import info.mengnan.aitalk.server.service.RagAdapterService;
 import info.mengnan.aitalk.server.service.ToolAdapterService;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +43,7 @@ public class ChatController {
     private final ChatMessageService chatMessageService;
     private final RagAdapterService ragAdapterService;
     private final ToolAdapterService toolAdapterService;
+    private final DirectModelInvoker directModelInvoker;
 
     /**
      * 流式对话接口 - 使用 HTTP Streaming (application/x-ndjson)
@@ -50,8 +54,8 @@ public class ChatController {
         if (sessionId == null || sessionId.isEmpty()) {
             return Flux.error(new IllegalArgumentException("sessionId 不能为空"));
         }
-        if (chatSessionService.findLastBySessionId(sessionId) == null) {
-            throw new IllegalArgumentException("sessionId 不存在");
+        if (chatSessionService.findBySessionId(sessionId) == null) {
+            return Flux.error(new IllegalArgumentException("sessionId 不存在"));
         }
         Long memberId = StpUtil.getLoginIdAsLong();
         request.setMemberId(memberId);
@@ -65,7 +69,7 @@ public class ChatController {
         if (chatSession != null) {
             List<ChatMessage> chatMessageList = chatMessageService.findChat(chatSession.getChatSessionId());
             if (chatMessageList.isEmpty()) {
-                ChatSessionResult sessionResult = new ChatSessionResult(chatSession.getChatSessionId(), "新对话");
+                ChatSessionResponse sessionResult = new ChatSessionResponse(chatSession.getChatSessionId(), ChatSession.DEFAULT_TITLE);
                 return R.ok(sessionResult);
             }
         }
@@ -74,11 +78,34 @@ public class ChatController {
         ChatSession session = new ChatSession();
         session.setChatSessionId(sessionId);
         session.setMemberId(StpUtil.getLoginIdAsLong());
-        session.setTitle("新对话");
+        session.setTitle(ChatSession.DEFAULT_TITLE);
         chatSessionService.createChat(session);
-        ChatSessionResult sessionResult = new ChatSessionResult(session.getChatSessionId(), "新对话");
+        ChatSessionResponse sessionResult = new ChatSessionResponse(session.getChatSessionId(), ChatSession.DEFAULT_TITLE);
         return R.ok(sessionResult);
     }
+
+
+    @GetMapping(value = "/conversations")
+    public R conversations(@RequestParam("sessionId") String sessionId) {
+        Long memberId = StpUtil.getLoginIdAsLong();
+        ChatConversations chatConversations = new ChatConversations(memberId,sessionId);
+
+        ChatSession chatSession = chatSessionService.findBySessionId(sessionId);
+        if (chatSession != null && ChatSession.DEFAULT_TITLE.equals(chatSession.getTitle())) {
+            List<String> list = chatMessageService.findChatByRole(sessionId,List.of(ASSISTANT.n(), USER.n())).stream()
+                    .map(ChatMessage::getContent)
+                    .limit(3)
+                    .toList();
+            if (list.size() >= 2) {
+                Map<String, Object> params = Map.of("query", list);
+                String title = directModelInvoker.directInvoke("title_generation", params, ModelType.CHAT);
+                chatConversations.setTitle(title);
+                chatSessionService.updateChatTitle(sessionId, title);
+            }
+        }
+        return R.ok(chatConversations);
+    }
+
 
     /**
      * 流式响应 - 返回纯文本流
