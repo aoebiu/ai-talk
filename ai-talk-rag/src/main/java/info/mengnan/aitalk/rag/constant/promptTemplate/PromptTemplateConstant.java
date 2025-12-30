@@ -6,18 +6,15 @@ import dev.langchain4j.model.input.PromptTemplate;
 public class PromptTemplateConstant {
 
     public static final PromptTemplate QUERY_ROUTER_PROMPT_TEMPLATE = PromptTemplate.from("""
-             Based on the user query, determine the most suitable data source(s)
-                to retrieve relevant information from the following options:
+                Based on the user query, determine which data source(s) to retrieve from:
                 {{options}}
             
-                **Matching Rules:**
-                1. If the query is RELATED to any data source's topic, select that data source
-                2. "Related" means the query is about the same general subject area
-                3. Choose data sources that could potentially contain information relevant to the query
-                4. Be inclusive rather than exclusive in your matching
+                **Rules:**
+                - Select data source ONLY if query is DIRECTLY related to its specific topic
+                - "Related" means query is about the exact same subject matter
+                - If no data source is relevant, return EMPTY (nothing, no text)
+                - Output must be ONLY a single number, comma-separated numbers, or EMPTY
             
-                It is very important that your answer consists of either a single number
-                or multiple numbers separated by commas and nothing else!
                 User query: {{query}}
             """
     );
