@@ -80,6 +80,12 @@
             <artifactId>sa-token-spring-boot3-starter</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-jwt</artifactId>
+        </dependency>
+
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

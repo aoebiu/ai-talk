@@ -46,7 +46,7 @@ public class MemberController {
     @PostMapping("/logout")
     public R logout() {
         StpUtil.logout();
-        return R.ok("退出成功");
+        return R.ok();
     }
 
     /**
@@ -68,7 +68,7 @@ public class MemberController {
                 request.getPhone(),
                 request.getAvatar()
         );
-        return R.ok("更新成功");
+        return R.ok();
     }
 
     /**
@@ -80,7 +80,7 @@ public class MemberController {
                 request.getOldPassword(),
                 request.getNewPassword()
         );
-        return R.ok("密码修改成功");
+        return R.ok();
 
     }
 }

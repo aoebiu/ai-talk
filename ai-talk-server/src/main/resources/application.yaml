@@ -7,6 +7,13 @@ spring:
 
   # 数据库配置
   datasource:
+    hikari:
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      idle-timeout: 600000
+      minimum-idle: 5
+      maximum-pool-size: 20
+      keepalive-time: 30000
     url: jdbc:mysql://${mysql.host:127.0.0.1}:${mysql.port:3306}/ai_talk?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: ${mysql.username:root}
     password: ${mysql.password:root}
@@ -17,6 +24,8 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
+  web:
+    resources.add-mappings: false
 
 # MyBatis-Plus配置
 mybatis-plus:
@@ -46,15 +55,15 @@ file:
 
 # Sa-Token配置
 sa-token:
-  token-name: satoken
+  token-name: Authorization
   timeout: 2592000
   active-timeout: -1
   is-concurrent: true
   is-share: true
-  token-style: uuid
+  token-style: jwt
+  jwt-secret-key: ${sa-token.secret-key}
   is-log: false
   is-print: false
   is-read-cookie: false
   is-read-header: true
   token-prefix: Bearer
-

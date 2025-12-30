@@ -21,8 +21,8 @@ public class ChatApiKeyService {
         return mapper.findByIds(id);
     }
 
-    public List<ChatApiKey> findAll() {
-        return mapper.findALl();
+    public List<ChatApiKey> findAll(Long memberId) {
+        return mapper.findALl(memberId);
     }
 
 

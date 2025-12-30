@@ -9,6 +9,8 @@ import info.mengnan.aitalk.rag.config.ModelConfig;
 import info.mengnan.aitalk.rag.constant.promptTemplate.PromptTemplateConstant;
 import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
+import info.mengnan.aitalk.repository.entity.ChatSession;
+import info.mengnan.aitalk.repository.service.ChatSessionService;
 import info.mengnan.aitalk.server.service.ModelConfigService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,7 @@ public class ChatHistoryCompressing {
     private final PromptTemplate promptTemplate;
     private final ModelRegistry modelRegistry;
     private final ModelConfigService modelConfigService;
+    private final ChatSessionService chatSessionService;
 
     @Value("${chat.compress.model-name:gpt-3.5-turbo}")
     private String compressModelName;
@@ -41,14 +44,16 @@ public class ChatHistoryCompressing {
                                   @Autowired(required = false)
                                   PromptTemplate promptTemplate,
                                   ModelRegistry modelRegistry,
-                                  ModelConfigService modelConfigService) {
+                                  ModelConfigService modelConfigService,
+                                  ChatSessionService chatSessionService) {
         this.promptTemplate = promptTemplate != null ? promptTemplate : PromptTemplateConstant.COMPRESSION_PROMPT_TEMPLATE;
         this.modelRegistry = modelRegistry;
         this.modelConfigService = modelConfigService;
+        this.chatSessionService = chatSessionService;
     }
 
-    private ChatModel getChatModel() {
-        ModelConfig chatConfig = modelConfigService.findModel(compressModelName, ModelType.CHAT);
+    private ChatModel getChatModel(Long memberId) {
+        ModelConfig chatConfig = modelConfigService.findModel(memberId, compressModelName, ModelType.CHAT);
         if (chatConfig == null) {
             throw new RuntimeException("压缩模型配置不存在: " + compressModelName);
         }
@@ -74,8 +79,9 @@ public class ChatHistoryCompressing {
             String conversationText = buildConversationText(messagesToCompress);
             Prompt prompt = createPrompt(Query.from(conversationText));
 
+            ChatSession chatSession = chatSessionService.findLastBySessionId(messagesToCompress.get(0).getSessionId());
             // 动态创建 ChatModel 并调用 LLM 进行总结
-            ChatModel chatModel = getChatModel();
+            ChatModel chatModel = getChatModel(chatSession.getMemberId());
             String compressedText = chatModel.chat(prompt.text());
 
             log.info("Message compression completed, original message number: {}, compressed length: {}",

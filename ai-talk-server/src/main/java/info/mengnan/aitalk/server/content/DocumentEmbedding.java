@@ -48,7 +48,7 @@ public class DocumentEmbedding {
     /**
      * 上传文件并进行向量化存储
      */
-    public String uploadAndProcessDocument(MultipartFile file, String type) throws IOException {
+    public String uploadAndProcessDocument(Long memberId, MultipartFile file, String type) throws IOException {
         // 创建上传目录
         Path uploadPath = Paths.get(uploadDir);
         if (!Files.exists(uploadPath)) {
@@ -62,43 +62,46 @@ public class DocumentEmbedding {
         }
 
         Path filePath = uploadPath.resolve(originalFilename);
-        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-        // 解析文档
-        String fileExtension = getFileExtension(originalFilename);
-        Document document = parseDocument(filePath, fileExtension);
+        try (InputStream inputStream = file.getInputStream()) {
+            Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+            // 解析文档
+            String fileExtension = getFileExtension(originalFilename);
+            Document document = parseDocument(filePath, fileExtension);
 
-        DocumentSplitter splitter = switch (type.toLowerCase()) {
-            case "short_text" -> DocumentSplitters.recursive(150, 20);
-            case "paper" -> DocumentSplitters.recursive(400, 40);
-            case "contract" -> DocumentSplitters.recursive(300, 0);
-            case "novel" -> DocumentSplitters.recursive(750, 50);
-            default -> DocumentSplitters.recursive(300, 50);
-        };
+            DocumentSplitter splitter = switch (type.toLowerCase()) {
+                case "short_text" -> DocumentSplitters.recursive(150, 20);
+                case "paper" -> DocumentSplitters.recursive(400, 40);
+                case "contract" -> DocumentSplitters.recursive(300, 0);
+                case "novel" -> DocumentSplitters.recursive(750, 50);
+                default -> DocumentSplitters.recursive(300, 50);
+            };
 
-        List<TextSegment> segments = splitter.split(document);
-        log.info("document split into {} fragments", segments.size());
+            List<TextSegment> segments = splitter.split(document);
+            log.info("document split into {} fragments", segments.size());
+            // 动态创建 EmbeddingStore（使用文件名作为索引名）
+            String indexName = sanitizeIndexName(originalFilename);
+            EmbeddingStore<TextSegment> embeddingStore = embeddingStoreRegistry.createEmbeddingStore(indexName);
 
-        // 动态创建 EmbeddingStore（使用文件名作为索引名）
-        String indexName = sanitizeIndexName(originalFilename);
-        EmbeddingStore<TextSegment> embeddingStore = embeddingStoreRegistry.createEmbeddingStore(indexName);
+            // 从数据库查询 EmbeddingModel 配置
+            ModelConfig embeddingConfig = modelConfigService.findModel(memberId, embeddingModelName, ModelType.EMBEDDING);
+            if (embeddingConfig == null) {
+                log.error("embedding Model Configuration Not Found: {}", embeddingModelName);
+                throw new RuntimeException("Embedding 模型配置不存在: " + embeddingModelName);
+            }
 
-        // 从数据库查询 EmbeddingModel 配置
-        ModelConfig embeddingConfig = modelConfigService.findModel(embeddingModelName, ModelType.EMBEDDING);
-        if (embeddingConfig == null) {
-            log.error("embedding Model Configuration Not Found: {}", embeddingModelName);
-            throw new RuntimeException("Embedding 模型配置不存在: " + embeddingModelName);
+            // 动态创建 EmbeddingModel
+            EmbeddingModel embeddingModel = modelRegistry.createEmbeddingModel(embeddingConfig);
+
+            // 生成向量并存储
+            List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
+            embeddingStore.addAll(embeddings, segments);
+
+            log.info("Document {} was successfully vectorized and stored to the index {}", originalFilename, indexName);
+            return originalFilename;
+        } finally {
+            Files.deleteIfExists(filePath);
         }
-
-        // 动态创建 EmbeddingModel
-        EmbeddingModel embeddingModel = modelRegistry.createEmbeddingModel(embeddingConfig);
-
-        // 生成向量并存储
-        List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
-        embeddingStore.addAll(embeddings, segments);
-
-        log.info("Document {} was successfully vectorized and stored to the index {}", originalFilename, indexName);
-        return originalFilename;
     }
 
     /**
