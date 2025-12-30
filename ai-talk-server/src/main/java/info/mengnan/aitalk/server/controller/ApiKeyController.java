@@ -3,6 +3,7 @@ package info.mengnan.aitalk.server.controller;
 import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.repository.entity.ChatProjectApiKey;
 import info.mengnan.aitalk.repository.service.ApiKeyService;
+import info.mengnan.aitalk.server.param.R;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -30,7 +31,7 @@ public class ApiKeyController {
      * @param expiresInDays 过期天数（可选，不传则永不过期）
      */
     @PostMapping("/create")
-    public Map<String, Object> createApiKey(
+    public R createApiKey(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Integer expiresInDays) {
 
@@ -47,54 +48,41 @@ public class ApiKeyController {
         if (expiresInDays != null && expiresInDays > 0) {
             entity.setExpiresAt(LocalDateTime.now().plusDays(expiresInDays));
         }
-
         apiKeyService.insert(entity);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("id", entity.getId());
-        result.put("apiKey", apiKey);
-        result.put("name", name);
-        result.put("expiresAt", entity.getExpiresAt());
-        result.put("createdAt", entity.getCreatedAt());
-
         log.info("User {} created API Key: {}", memberId, entity.getId());
-        return result;
+        return R.ok();
     }
 
     /**
      * 禁用 API Key
      */
     @PostMapping("/disable/{id}")
-    public Map<String, String> disableApiKey(@PathVariable Long id) {
+    public R disableApiKey(@PathVariable Long id) {
         Long memberId = StpUtil.getLoginIdAsLong();
 
-        ChatProjectApiKey chatProjectApiKey = apiKeyService.findByApiKey(
-                apiKeyService.findByApiKey(null) != null ? null : ""
-        );
+        ChatProjectApiKey projectApiKey = apiKeyService.findById(id);
+        if (projectApiKey == null || !memberId.equals(projectApiKey.getMemberId())) {
+            return R.error("该 API Key 无法删除");
+        }
         // TODO: 添加权限检查，确保只能禁用自己的 API Key
 
-        if (chatProjectApiKey != null) {
-            chatProjectApiKey.setStatus(0);
-            apiKeyService.updateById(chatProjectApiKey);
-        }
-
-        Map<String, String> result = new HashMap<>();
-        result.put("message", "API Key 已禁用");
-        return result;
+        projectApiKey.setStatus(0);
+        apiKeyService.updateById(projectApiKey);
+        return R.ok();
     }
 
     /**
-     * 删除 API Key（逻辑删除）
+     * 删除 API Key
      */
     @DeleteMapping("/{id}")
-    public Map<String, String> deleteApiKey(@PathVariable Long id) {
+    public R deleteApiKey(@PathVariable Long id) {
         Long memberId = StpUtil.getLoginIdAsLong();
-        // TODO: 添加权限检查，确保只能删除自己的 API Key
 
+        ChatProjectApiKey projectApiKey = apiKeyService.findById(id);
+        if (projectApiKey == null || !memberId.equals(projectApiKey.getMemberId())) {
+            return R.error("该 API Key 无法删除");
+        }
         apiKeyService.deleteById(id);
-
-        Map<String, String> result = new HashMap<>();
-        result.put("message", "API Key 已删除");
-        return result;
+        return R.ok();
     }
 }

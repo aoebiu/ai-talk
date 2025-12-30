@@ -12,7 +12,6 @@ public class R {
     public static R ok() {
         R r = new R();
         r.setSuccess(true);
-        r.setMessage("success");
         return r;
     }
 
@@ -32,7 +31,6 @@ public class R {
     public static R error() {
         R r = new R();
         r.setSuccess(false);
-        r.setMessage("error");
         return r;
     }
 

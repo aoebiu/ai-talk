@@ -23,7 +23,7 @@ public class ModelConfig {
     private String modelProvider;
 
     /**
-     * 密钥类型 (例如: chat, streaming_chat, embedding, scoring)
+     * 模型类型 (例如: chat, streaming_chat, embedding, scoring)
      */
     private String keyType;
 

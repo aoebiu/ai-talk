@@ -3,7 +3,7 @@ package info.mengnan.aitalk.server.service;
 import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.repository.entity.ChatMember;
 import info.mengnan.aitalk.repository.service.MemberService;
-import info.mengnan.aitalk.server.param.auth.MemberVO;
+import info.mengnan.aitalk.server.param.auth.MemberResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -42,7 +42,7 @@ public class MemberAuthService {
     /**
      * 用户登录
      */
-    public MemberVO login(String username, String password) {
+    public MemberResponse login(String username, String password) {
         ChatMember chatMember = memberService.findByUsername(username);
         if (chatMember == null) {
             throw new IllegalArgumentException("用户名或密码错误");
@@ -65,7 +65,7 @@ public class MemberAuthService {
     /**
      * 获取当前登录用户信息
      */
-    public MemberVO getCurrentMemberInfo() {
+    public MemberResponse getCurrentMemberInfo() {
         Long memberId = StpUtil.getLoginIdAsLong();
         ChatMember chatMember = memberService.findById(memberId);
         if (chatMember == null) {
@@ -121,8 +121,8 @@ public class MemberAuthService {
     /**
      * 构建MemberVO对象
      */
-    private MemberVO buildMemberVO(ChatMember chatMember, String token) {
-        MemberVO vo = new MemberVO();
+    private MemberResponse buildMemberVO(ChatMember chatMember, String token) {
+        MemberResponse vo = new MemberResponse();
         vo.setId(chatMember.getId());
         vo.setUsername(chatMember.getUsername());
         vo.setNickname(chatMember.getNickname());

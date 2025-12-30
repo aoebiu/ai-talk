@@ -17,5 +17,5 @@ public interface ModelConfigProvider {
      * @param modelType 模型类型
      * @return ModelConfig
      */
-    ModelConfig findModel(Long memberId,String modelName, ModelType modelType);
+    ModelConfig findModel(Long memberId, String modelName, ModelType modelType);
 }

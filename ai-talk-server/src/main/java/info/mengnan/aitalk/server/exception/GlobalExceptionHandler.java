@@ -1,4 +1,4 @@
-package info.mengnan.aitalk.server.config;
+package info.mengnan.aitalk.server.exception;
 
 import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.exception.SaTokenException;

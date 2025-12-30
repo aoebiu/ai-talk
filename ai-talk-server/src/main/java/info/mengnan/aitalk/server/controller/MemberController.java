@@ -25,7 +25,7 @@ public class MemberController {
                 request.getNickname(),
                 request.getPhone()
         );
-        return R.ok("注册成功");
+        return R.ok();
     }
 
     /**
@@ -33,7 +33,7 @@ public class MemberController {
      */
     @PostMapping("/login")
     public R login(@RequestBody LoginRequest request) {
-        MemberVO memberVO = memberAuthService.login(
+        MemberResponse memberVO = memberAuthService.login(
                 request.getUsername(),
                 request.getPassword()
         );
@@ -54,7 +54,7 @@ public class MemberController {
      */
     @GetMapping("/info")
     public R info() {
-        MemberVO memberVO = memberAuthService.getCurrentMemberInfo();
+        MemberResponse memberVO = memberAuthService.getCurrentMemberInfo();
         return R.ok(memberVO);
     }
 
@@ -74,13 +74,12 @@ public class MemberController {
     /**
      * 修改密码
      */
-    @PostMapping("/change-password")
+    @PostMapping("/changePassword")
     public R changePassword(@RequestBody ChangePasswordRequest request) {
         memberAuthService.changePassword(
                 request.getOldPassword(),
                 request.getNewPassword()
         );
         return R.ok();
-
     }
 }

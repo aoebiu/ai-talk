@@ -2,7 +2,6 @@ package info.mengnan.aitalk.server.controller;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.service.tool.ToolExecutor;
-import info.mengnan.aitalk.common.json.JSONObject;
 import info.mengnan.aitalk.rag.container.assemble.AssembledModels;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
 import info.mengnan.aitalk.repository.entity.ChatProjectApiKey;

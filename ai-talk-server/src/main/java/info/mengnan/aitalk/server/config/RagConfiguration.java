@@ -4,11 +4,15 @@ import com.alibaba.dashscope.tokenizers.QwenTokenizer;
 import com.alibaba.dashscope.tokenizers.Tokenizer;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import info.mengnan.aitalk.rag.ChatService;
+import info.mengnan.aitalk.rag.config.DefaultModelConfig;
 import info.mengnan.aitalk.rag.config.ElasticsearchProperties;
 import info.mengnan.aitalk.rag.container.assemble.AssembledModelsConstruct;
 import info.mengnan.aitalk.rag.container.assemble.DynamicEmbeddingStoreRegistry;
 import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
 import info.mengnan.aitalk.rag.container.factory.CapableModelFactory;
+import info.mengnan.aitalk.rag.service.ModelConfigProvider;
+import info.mengnan.aitalk.rag.service.PromptTemplateManager;
+import info.mengnan.aitalk.rag.service.DirectModelInvoker;
 import info.mengnan.aitalk.server.service.ModelConfigService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -25,7 +29,7 @@ import org.springframework.context.annotation.Configuration;
 public class RagConfiguration {
 
     /**
-     * 创建Elasticsearch配置属性Bean·
+     * 创建Elasticsearch配置属性Bean
      */
     @Bean
     @ConfigurationProperties(prefix = "elasticsearch")
@@ -57,6 +61,7 @@ public class RagConfiguration {
     public DynamicEmbeddingStoreRegistry dynamicEmbeddingStoreRegistry(
             ElasticsearchProperties elasticsearchProperties) {
         log.info("Creating DynamicEmbeddingStoreRegistry...");
+        // 注册销毁回调
         return new DynamicEmbeddingStoreRegistry(elasticsearchProperties);
     }
 
@@ -91,4 +96,19 @@ public class RagConfiguration {
         log.info("Creating QwenTokenizer...");
         return new QwenTokenizer();
     }
+
+    @Bean
+    public DefaultModelConfig modelConfig() {
+        return new DefaultModelConfig();
+    }
+
+    @Bean
+    public DirectModelInvoker DirectModelInvoker(ModelRegistry modelRegistry,
+                                                 ModelConfigService modelConfigService,
+                                                 DefaultModelConfig modelConfig) {
+        PromptTemplateManager promptTemplateManager = new PromptTemplateManager();
+        return new DirectModelInvoker(modelRegistry, modelConfigService::findModel,
+                promptTemplateManager, modelConfig);
+    }
+
 }

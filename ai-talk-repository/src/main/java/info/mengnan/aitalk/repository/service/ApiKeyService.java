@@ -15,6 +15,13 @@ public class ApiKeyService {
     private final ApiKeyMapper mapper;
 
     /**
+     * 通过id查找
+     */
+    public ChatProjectApiKey findById(Long id) {
+        return mapper.selectById(id);
+    }
+
+    /**
      * 根据 API Key 查找
      */
     public ChatProjectApiKey findByApiKey(String apiKey) {
@@ -29,15 +36,10 @@ public class ApiKeyService {
      */
     public ChatProjectApiKey validateApiKey(String apiKey) {
         ChatProjectApiKey key = findByApiKey(apiKey);
-
-        if (key == null) {
-            return null;
-        }
+        if (key == null) return null;
 
         // 检查状态
-        if (key.getStatus() != 1) {
-            return null;
-        }
+        if (key.getStatus() != 1) return null;
 
         // 检查是否过期
         if (key.getExpiresAt() != null && key.getExpiresAt().isBefore(LocalDateTime.now())) {

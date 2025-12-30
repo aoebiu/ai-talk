@@ -3,7 +3,7 @@ package info.mengnan.aitalk.server.param.auth;
 import lombok.Data;
 
 @Data
-public class MemberVO {
+public class MemberResponse {
     private Long id;
     private String username;
     private String nickname;
