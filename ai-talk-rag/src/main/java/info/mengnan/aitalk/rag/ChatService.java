@@ -77,7 +77,8 @@ public class ChatService {
      * @param toolMap         工具map
      *
      */
-    public void chatStreaming(String sessionId,
+    public void chatStreaming(Long memberId,
+                              String sessionId,
                               String message,
                               StreamingResponseHandler handler,
                               AssembledModels assembledModels,
@@ -87,7 +88,7 @@ public class ChatService {
             return;
         }
 
-        AssistantUnique assistantUnique = buildAssistantUnique(assembledModels,toolMap);
+        AssistantUnique assistantUnique = buildAssistantUnique(memberId,assembledModels,toolMap);
 
         try {
             TokenStream tokenStream = assistantUnique.chatStreaming(sessionId, message);
@@ -117,7 +118,7 @@ public class ChatService {
     /**
      * 根据配置动态构建 AssistantUnique
      */
-    private AssistantUnique buildAssistantUnique(AssembledModels assembledModels, Map<ToolSpecification, ToolExecutor> toolMap) {
+    private AssistantUnique buildAssistantUnique(Long memberId, AssembledModels assembledModels, Map<ToolSpecification, ToolExecutor> toolMap) {
         AiServices<AssistantUnique> builder = AiServices.builder(AssistantUnique.class);
 
         if (assembledModels.rag()) {
@@ -129,6 +130,7 @@ public class ChatService {
 
                 if (assembledModels.scoringModel() != null) {
                     ModelConfig scoringConfig = modelConfigProvider.findModel(
+                            memberId,
                             assembledModels.scoringModel().getModelName(),
                             SCORING);
 
@@ -152,6 +154,7 @@ public class ChatService {
             // 动态创建 EmbeddingStore 和 ContentRetriever
             List<String> indexNames = embeddingStoreRegistry.queryAllIndexNames();
             Map<ContentRetriever, String> contentRetrieverMap = buildContentRetrieverMap(
+                    memberId,
                     indexNames,
                     assembledModels);
 
@@ -163,6 +166,7 @@ public class ChatService {
                 queryRouter = new DefaultQueryRouter(contentRetrieverMap.keySet());
             } else {
                 ModelConfig chatConfig = modelConfigProvider.findModel(
+                        memberId,
                         assembledModels.chatModel().getModelName(),
                         CHAT);
 
@@ -181,6 +185,7 @@ public class ChatService {
 
         if (assembledModels.streamingChatModel() != null) {
             ModelConfig streamingChatConfig = modelConfigProvider.findModel(
+                    memberId,
                     assembledModels.streamingChatModel().getModelName(),
                     STREAMING_CHAT);
 
@@ -192,6 +197,7 @@ public class ChatService {
 
         if (assembledModels.chatModel() != null) {
             ModelConfig chatConfig = modelConfigProvider.findModel(
+                    memberId,
                     assembledModels.chatModel().getModelName(),
                     CHAT);
 
@@ -203,6 +209,7 @@ public class ChatService {
 
         if (assembledModels.moderateModel() != null) {
             ModelConfig moderateConfig = modelConfigProvider.findModel(
+                    memberId,
                     assembledModels.moderateModel().getModelName(),
                     MODERATE);
 
@@ -231,7 +238,8 @@ public class ChatService {
      * 构建 ContentRetriever Map
      * 为每个 ES 索引动态创建 EmbeddingStore 和 ContentRetriever
      */
-    public Map<ContentRetriever, String> buildContentRetrieverMap(List<String> indexNames,
+    public Map<ContentRetriever, String> buildContentRetrieverMap(Long memberId,
+                                                                  List<String> indexNames,
                                                                   AssembledModels assembledModels) {
         Map<ContentRetriever, String> map = new HashMap<>();
 
@@ -242,6 +250,7 @@ public class ChatService {
         }
 
         ModelConfig embeddingConfig = modelConfigProvider.findModel(
+                memberId,
                 assembledModels.embeddingModel().getModelName(),
                 EMBEDDING);
 

@@ -16,6 +16,11 @@ public class ChatApiKey {
     private Long id;
 
     /**
+     * 关联用户Id
+     */
+    private Long memberId;
+
+    /**
      * API Key类型: chat, streaming_chat, embedding
      */
     private String keyType;

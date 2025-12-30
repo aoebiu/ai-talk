@@ -27,7 +27,7 @@ public class TokenCounting {
         try {
             return tokenizer.encode(text, "none").size();
         } catch (Exception e) {
-            log.warn("计算 token 失败，使用估算方式: {}", e.getMessage());
+            log.warn("Failed to calculate token, use estimation method: {}", e.getMessage());
             return estimateTokenCount(text);
         }
     }

@@ -1,5 +1,6 @@
 package info.mengnan.aitalk.server;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
@@ -7,6 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.env.Environment;
+import org.springframework.web.bind.annotation.*;
 
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Slf4j
+@RestController
 @SpringBootApplication
 @MapperScan("info.mengnan.aitalk.repository.mapper")
 @ComponentScan(basePackages = {"info.mengnan.aitalk"})
@@ -47,5 +50,10 @@ public class AiTalkApplication {
                         start_time      {}
                         -----------------------------------------------""",
                 appName, profile, localUrl, networkUrl, port, pid, startTime);
+    }
+
+    @GetMapping(value = "/", produces = "application/json")
+    public String success() {
+        return "{\"success\":true,\"message\":\"ai-talk started successfully!.\",\"data\":null}";
     }
 }

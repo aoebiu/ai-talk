@@ -1,5 +1,6 @@
 package info.mengnan.aitalk.server.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.server.content.DocumentEmbedding;
 import info.mengnan.aitalk.server.param.R;
 import lombok.RequiredArgsConstructor;
@@ -32,8 +33,9 @@ public class DocumentController {
         log.info("File upload request received: {}", file.getOriginalFilename());
 
         String savedFileName = null;
+        Long memberId = StpUtil.getLoginIdAsLong();
         try {
-            savedFileName = documentService.uploadAndProcessDocument(file, type);
+            savedFileName = documentService.uploadAndProcessDocument(memberId, file, type);
         } catch (Exception e) {
             log.error("file Upload Failed", e);
             return R.error("文件上传失败:" + e.getMessage());

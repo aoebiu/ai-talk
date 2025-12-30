@@ -11,11 +11,11 @@ import info.mengnan.aitalk.rag.config.ModelConfig;
 public interface ModelConfigProvider {
 
     /**
-     * 根据模型名称和类型查询模型配置
-     *
+     * 根据用户Id、模型名称和类型查询模型配置
+     * @param memberId 用户Id
      * @param modelName 模型名称
-     * @param modelType   模型类型
+     * @param modelType 模型类型
      * @return ModelConfig
      */
-    ModelConfig findModel(String modelName, ModelType modelType);
+    ModelConfig findModel(Long memberId,String modelName, ModelType modelType);
 }
