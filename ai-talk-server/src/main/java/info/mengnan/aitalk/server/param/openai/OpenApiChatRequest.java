@@ -1,6 +1,8 @@
 package info.mengnan.aitalk.server.param.openai;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
 
 import java.util.List;
@@ -67,6 +69,7 @@ public class OpenApiChatRequest {
     private Map<String, Object> metadata;
 
     @Data
+    @JsonDeserialize(using = MessageContentDeserializer.class)
     public static class Message {
         /**
          * 角色: system, user, assistant
@@ -74,13 +77,35 @@ public class OpenApiChatRequest {
         private String role;
 
         /**
-         * 消息内容
+         * 消息内容 - 字符串类型的简单消息
          */
         private String content;
+
+        /**
+         * 多模态消息内容部分 - 当content是数组时使用
+         */
+        private List<ContentPart> contentParts;
 
         /**
          * 消息名称(可选)
          */
         private String name;
+
+        // 内部类定义
+        @Data
+        public static class ContentPart {
+            private String type; // text, image_url
+
+            private String text;
+
+            @Data
+            public static class ImageUrl {
+                private String url;
+                private String detail = "auto"; // low, high, auto
+            }
+
+            @JsonProperty("image_url")
+            private ImageUrl imageUrl;
+        }
     }
 }

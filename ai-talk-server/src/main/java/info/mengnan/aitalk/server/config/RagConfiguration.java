@@ -10,7 +10,6 @@ import info.mengnan.aitalk.rag.container.assemble.AssembledModelsConstruct;
 import info.mengnan.aitalk.rag.container.assemble.DynamicEmbeddingStoreRegistry;
 import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
 import info.mengnan.aitalk.rag.container.factory.CapableModelFactory;
-import info.mengnan.aitalk.rag.service.ModelConfigProvider;
 import info.mengnan.aitalk.rag.service.PromptTemplateManager;
 import info.mengnan.aitalk.rag.service.DirectModelInvoker;
 import info.mengnan.aitalk.server.service.ModelConfigService;

@@ -51,4 +51,9 @@ public class PromptTemplateConstant {
             Title:
             """
     );
+
+    public static final PromptTemplate IDENTIFY_PICTURE_PROMPT_TEMPLATE = PromptTemplate.from("""
+            Please analyze this image and describe in detail what you see.
+            """
+    );
 }

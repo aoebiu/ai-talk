@@ -14,39 +14,48 @@ import static info.mengnan.aitalk.common.param.ModelType.*;
  * 通用模型工厂实现
  * 继承 RagContainer，同时实现多种模型工厂接口
  * 集成了容器管理和模型创建的能力
+ *
+ * 支持的提供商和模型类型：
+ * - DashScope (阿里云通义千问): CHAT, STREAMING_CHAT, EMBEDDING, IMAGE
+ * - Ollama: CHAT, STREAMING_CHAT, EMBEDDING
+ * - Cohere: SCORING
+ * - OpenAI: MODERATE, IMAGE
  */
 @Slf4j
 public class CapableModelFactory implements ChatModelFactory,
                                             EmbeddingModelFactory,
                                             ScoringModelFactory,
-                                            ModerationModelFactory {
+                                            ModerationModelFactory,
+                                            ImageModelFactory {
 
     private final Map<ModelProvider, Map<ModelType, String>> MODEL_CLASS_MAPPING = new HashMap<>();
 
 
     public CapableModelFactory() {
-        // DashScope (通义千问)
+        // DashScope (通义千问) - 支持聊天、流式聊天、嵌入、图生文
         Map<ModelType, String> dashscopeModels = new HashMap<>();
         dashscopeModels.put(CHAT, "dev.langchain4j.community.model.dashscope.QwenChatModel");
         dashscopeModels.put(STREAMING_CHAT, "dev.langchain4j.community.model.dashscope.QwenStreamingChatModel");
         dashscopeModels.put(EMBEDDING, "dev.langchain4j.community.model.dashscope.QwenEmbeddingModel");
+        dashscopeModels.put(IMAGE, "dev.langchain4j.community.model.dashscope.QwenImageModel");
         MODEL_CLASS_MAPPING.put(ModelProvider.DASHSCOPE, dashscopeModels);
 
-        // Ollama
+        // Ollama - 支持聊天、流式聊天、嵌入
         Map<ModelType, String> ollamaModels = new HashMap<>();
         ollamaModels.put(CHAT, "dev.langchain4j.model.ollama.OllamaChatModel");
         ollamaModels.put(STREAMING_CHAT, "dev.langchain4j.model.ollama.OllamaStreamingChatModel");
         ollamaModels.put(EMBEDDING, "dev.langchain4j.model.ollama.OllamaEmbeddingModel");
         MODEL_CLASS_MAPPING.put(ModelProvider.OLLAMA, ollamaModels);
 
-        // Cohere
+        // Cohere - 支持评分
         Map<ModelType, String> cohereModels = new HashMap<>();
         cohereModels.put(SCORING, "dev.langchain4j.model.cohere.CohereScoringModel");
         MODEL_CLASS_MAPPING.put(ModelProvider.COHERE, cohereModels);
 
-        // OpenAI
+        // OpenAI - 支持审核、图生文
         Map<ModelType, String> openaiModels = new HashMap<>();
         openaiModels.put(MODERATE, "dev.langchain4j.model.openai.OpenAiModerationModel");
+        openaiModels.put(IMAGE, "dev.langchain4j.model.openai.OpenAiImageModel");
         MODEL_CLASS_MAPPING.put(ModelProvider.OPENAI, openaiModels);
     }
 
@@ -97,8 +106,8 @@ public class CapableModelFactory implements ChatModelFactory,
             Method buildMethod = builderClass.getMethod("build");
             Object model = buildMethod.invoke(builder);
 
-            log.info("Successfully created {} model: {} (provider: {})",
-                    modelType, className, provider);
+            log.info("Successfully created {} model: {} (provider: {}, modelName: {})",
+                    modelType, className, provider, modelConfig.getModelName());
 
             return model;
         } catch (ClassNotFoundException e) {
