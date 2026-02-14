@@ -4,6 +4,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
+import info.mengnan.aitalk.rag.config.DefaultModelConfig;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
 import info.mengnan.aitalk.repository.service.ChatMessageService;
 import info.mengnan.aitalk.server.content.ChatHistoryCompressing;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 import static info.mengnan.aitalk.common.param.MessageRole.*;
+import static info.mengnan.aitalk.rag.config.DefaultModelConfig.DEFAULT_SESSION;
 
 @Component
 @RequiredArgsConstructor
@@ -59,6 +61,7 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
     @Override
     public void updateMessages(Object memoryId, List<dev.langchain4j.data.message.ChatMessage> messages) {
         String sessionId = memoryId.toString();
+        if (DEFAULT_SESSION.equals(sessionId)) return;
 
         dev.langchain4j.data.message.ChatMessage chatMessage = messages.get(messages.size() - 1);
         ChatMessage dbMessage = new ChatMessage();
@@ -101,7 +104,7 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         // 创建压缩摘要消息
         ChatMessage summaryMessage = new ChatMessage();
         summaryMessage.setSessionId(sessionId);
-        summaryMessage.setRole("compress");
+        summaryMessage.setRole(COMPRESS.n());
 
         // 在摘要前添加说明
         String summaryWithMeta = String.format("[历史对话摘要 - 压缩了 %d 条消息]\n%s",

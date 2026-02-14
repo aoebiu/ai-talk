@@ -3,6 +3,7 @@ package info.mengnan.aitalk.rag.container.factory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.image.ImageModel;
 import dev.langchain4j.model.moderation.ModerationModel;
 import dev.langchain4j.model.scoring.ScoringModel;
 import info.mengnan.aitalk.common.util.Cast;
@@ -14,7 +15,9 @@ public enum ModelTypeMapper {
     STREAMING_CHAT(StreamingChatModel.class, ModelRegistry::createStreamingChatModel),
     EMBEDDING(EmbeddingModel.class, ModelRegistry::createEmbeddingModel),
     MODERATION(ModerationModel.class, ModelRegistry::createModerationModel),
-    SCORING(ScoringModel.class, ModelRegistry::createScoringModel);
+    SCORING(ScoringModel.class, ModelRegistry::createScoringModel),
+    IMAGE(ImageModel.class, ModelRegistry::createImageModel);
+
 
     private final Class<?> modelClass;
     private final ModelCreator creator;

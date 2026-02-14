@@ -23,7 +23,8 @@ public class PromptTemplateManager {
             "title_generation", PromptTemplateConstant.TITLE_GENERATION_PROMPT_TEMPLATE,
             "query_router", PromptTemplateConstant.QUERY_ROUTER_PROMPT_TEMPLATE,
             "compression", PromptTemplateConstant.COMPRESSION_PROMPT_TEMPLATE,
-            "content_injector", PromptTemplateConstant.CONTENT_INJECTOR_PROMPT_TEMPLATE
+            "content_injector", PromptTemplateConstant.CONTENT_INJECTOR_PROMPT_TEMPLATE,
+            "identify_picture", PromptTemplateConstant.IDENTIFY_PICTURE_PROMPT_TEMPLATE
     );
 
     /**
@@ -38,7 +39,7 @@ public class PromptTemplateManager {
     /**
      * 使用模板创建提示词
      * @param name 模板名称
-     * @param variables 模板变量
+     * @param variables 模板变量，为null时直接返回模板提示词
      * @return Prompt
      */
     public Prompt createPrompt(String name, Map<String, Object> variables) {
@@ -46,6 +47,9 @@ public class PromptTemplateManager {
         if (template == null) {
             log.warn("Template not found: {}", name);
             throw new IllegalArgumentException("Template not found: " + name);
+        }
+        if (variables == null || variables.isEmpty()) {
+            return Prompt.from(template.template());
         }
         return template.apply(variables);
     }

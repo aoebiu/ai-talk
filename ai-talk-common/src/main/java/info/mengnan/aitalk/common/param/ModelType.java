@@ -11,7 +11,8 @@ public enum ModelType {
     STREAMING_CHAT,
     EMBEDDING,
     SCORING,
-    MODERATE
+    MODERATE,
+    IMAGE
     ;
 
 
