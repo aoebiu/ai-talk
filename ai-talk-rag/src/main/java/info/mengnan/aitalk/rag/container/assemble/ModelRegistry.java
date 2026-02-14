@@ -3,6 +3,7 @@ package info.mengnan.aitalk.rag.container.assemble;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.image.ImageModel;
 import dev.langchain4j.model.moderation.ModerationModel;
 import dev.langchain4j.model.scoring.ScoringModel;
 import info.mengnan.aitalk.rag.container.factory.CapableModelFactory;
@@ -60,5 +61,13 @@ public class ModelRegistry {
     public ScoringModel createScoringModel(ModelConfig config) {
         log.debug("Creating ScoringModel: {} (provider: {})", config.getModelName(), config.getModelProvider());
         return modelFactory.createScoringModel(config);
+    }
+
+    /**
+     * 动态创建 ImageModel
+     */
+    public ImageModel createImageModel(ModelConfig config) {
+        log.debug("Creating ImageModel: {} (provider: {})", config.getModelName(), config.getModelProvider());
+        return modelFactory.createImageModel(config);
     }
 }

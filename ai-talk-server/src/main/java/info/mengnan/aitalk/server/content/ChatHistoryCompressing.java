@@ -5,6 +5,7 @@ import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.query.Query;
 import info.mengnan.aitalk.common.param.ModelType;
+import info.mengnan.aitalk.rag.config.DefaultModelConfig;
 import info.mengnan.aitalk.rag.config.ModelConfig;
 import info.mengnan.aitalk.rag.constant.promptTemplate.PromptTemplateConstant;
 import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
@@ -36,26 +37,26 @@ public class ChatHistoryCompressing {
     private final ModelRegistry modelRegistry;
     private final ModelConfigService modelConfigService;
     private final ChatSessionService chatSessionService;
-
-    @Value("${chat.compress.model-name:gpt-3.5-turbo}")
-    private String compressModelName;
+    private final DefaultModelConfig defaultModelConfig;
 
     public ChatHistoryCompressing(@Qualifier("compressingPrompt")
                                   @Autowired(required = false)
                                   PromptTemplate promptTemplate,
                                   ModelRegistry modelRegistry,
                                   ModelConfigService modelConfigService,
-                                  ChatSessionService chatSessionService) {
+                                  ChatSessionService chatSessionService,
+                                  DefaultModelConfig defaultModelConfig) {
         this.promptTemplate = promptTemplate != null ? promptTemplate : PromptTemplateConstant.COMPRESSION_PROMPT_TEMPLATE;
         this.modelRegistry = modelRegistry;
         this.modelConfigService = modelConfigService;
         this.chatSessionService = chatSessionService;
+        this.defaultModelConfig = defaultModelConfig;
     }
 
     private ChatModel getChatModel(Long memberId) {
-        ModelConfig chatConfig = modelConfigService.findModel(memberId, compressModelName, ModelType.CHAT);
+        ModelConfig chatConfig = modelConfigService.findModel(memberId, defaultModelConfig.getCompressModelName(), ModelType.CHAT);
         if (chatConfig == null) {
-            throw new RuntimeException("压缩模型配置不存在: " + compressModelName);
+            throw new RuntimeException("压缩模型配置不存在: " + defaultModelConfig.getCompressModelName());
         }
         return modelRegistry.createChatModel(chatConfig);
     }

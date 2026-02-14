@@ -98,7 +98,7 @@ public class ChatController {
                     .toList();
             if (list.size() >= 2) {
                 Map<String, Object> params = Map.of("query", list);
-                String title = directModelInvoker.directInvoke("title_generation", params, ModelType.CHAT);
+                String title = directModelInvoker.directInvoke("title_generation", params);
                 chatConversations.setTitle(title);
                 chatSessionService.updateChatTitle(sessionId, title);
             }

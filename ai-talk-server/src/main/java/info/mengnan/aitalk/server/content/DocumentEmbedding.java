@@ -15,6 +15,12 @@ import info.mengnan.aitalk.common.param.ModelType;
 import info.mengnan.aitalk.rag.config.ModelConfig;
 import info.mengnan.aitalk.rag.container.assemble.DynamicEmbeddingStoreRegistry;
 import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
+import info.mengnan.aitalk.server.document.DocumentImage;
+import info.mengnan.aitalk.server.document.DocumentImageExtractor;
+import info.mengnan.aitalk.server.document.EnhancedTextSegment;
+import info.mengnan.aitalk.server.document.ContentElement;
+import info.mengnan.aitalk.server.document.SequentialDocumentExtractor;
+import info.mengnan.aitalk.server.param.DocumentUploadResult;
 import info.mengnan.aitalk.server.service.ModelConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -38,6 +45,8 @@ public class DocumentEmbedding {
     private final DynamicEmbeddingStoreRegistry embeddingStoreRegistry;
     private final ModelRegistry modelRegistry;
     private final ModelConfigService modelConfigService;
+    private final DocumentImageExtractor imageExtractor;
+    private final SequentialDocumentExtractor sequentialExtractor;
 
     @Value("${file.upload-dir:./uploads}")
     private String uploadDir;
@@ -48,27 +57,45 @@ public class DocumentEmbedding {
     /**
      * 上传文件并进行向量化存储
      */
-    public String uploadAndProcessDocument(Long memberId, MultipartFile file, String type) throws IOException {
+    public DocumentUploadResult uploadAndProcessDocument(Long memberId, MultipartFile file, String type) throws IOException {
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null) {
+            return DocumentUploadResult.error("文件名无效");
+        }
+
+        String indexName = sanitizeIndexName(originalFilename);
+        if (indexExists(indexName)) {
+            log.warn("Document {} already exists in index {}, skipping upload", originalFilename, indexName);
+            return DocumentUploadResult.duplicate("文件已存在，无需重复上传", indexName);
+        }
+
         // 创建上传目录
         Path uploadPath = Paths.get(uploadDir);
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);
         }
 
-        // 保存文件
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null) {
-            return null;
-        }
-
         Path filePath = uploadPath.resolve(originalFilename);
 
         try (InputStream inputStream = file.getInputStream()) {
             Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
-            // 解析文档
+
             String fileExtension = getFileExtension(originalFilename);
+
+            // 按顺序提取内容
+            List<ContentElement> contentElements = sequentialExtractor.extractContentSequentially(filePath, fileExtension);
+            log.info("Extracted {} content elements (text + images) from document: {}", contentElements.size(), originalFilename);
+
+            // 统计图片数量
+            int imageCount = (int) contentElements.stream()
+                    .filter(e -> e.getType() == ContentElement.Type.IMAGE)
+                    .count();
+            log.info("Total images: {}", imageCount);
+
+            // 解析文档用于 LangChain4j（获取基础文本）
             Document document = parseDocument(filePath, fileExtension);
 
+            // 分割文档
             DocumentSplitter splitter = switch (type.toLowerCase()) {
                 case "short_text" -> DocumentSplitters.recursive(150, 20);
                 case "paper" -> DocumentSplitters.recursive(400, 40);
@@ -77,10 +104,19 @@ public class DocumentEmbedding {
                 default -> DocumentSplitters.recursive(300, 50);
             };
 
-            List<TextSegment> segments = splitter.split(document);
-            log.info("document split into {} fragments", segments.size());
-            // 动态创建 EmbeddingStore（使用文件名作为索引名）
-            String indexName = sanitizeIndexName(originalFilename);
+            List<TextSegment> textSegments = splitter.split(document);
+            log.info("Document split into {} fragments", textSegments.size());
+
+            // 提取所有图片对象用于元数据
+            List<DocumentImage> images = contentElements.stream()
+                    .filter(e -> e.getType() == ContentElement.Type.IMAGE)
+                    .map(ContentElement::getImage)
+                    .toList();
+
+            // 创建增强的文本段落，保存位置信息和图片元数据
+            List<TextSegment> enhancedSegments = createEnhancedSegmentsWithPosition(textSegments, images);
+
+            // 动态创建 EmbeddingStore
             EmbeddingStore<TextSegment> embeddingStore = embeddingStoreRegistry.createEmbeddingStore(indexName);
 
             // 从数据库查询 EmbeddingModel 配置
@@ -94,14 +130,96 @@ public class DocumentEmbedding {
             EmbeddingModel embeddingModel = modelRegistry.createEmbeddingModel(embeddingConfig);
 
             // 生成向量并存储
-            List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
-            embeddingStore.addAll(embeddings, segments);
+            List<Embedding> embeddings = embeddingModel.embedAll(enhancedSegments).content();
+            embeddingStore.addAll(embeddings, enhancedSegments);
 
-            log.info("Document {} was successfully vectorized and stored to the index {}", originalFilename, indexName);
-            return originalFilename;
+            log.info("Document {} was successfully vectorized and stored to the index {}. Total images: {}",
+                    originalFilename, indexName, imageCount);
+            return DocumentUploadResult.success(originalFilename, indexName);
         } finally {
             Files.deleteIfExists(filePath);
         }
+    }
+
+    /**
+     * 创建增强的文本段落，包含位置信息和图片元数据
+     */
+    private List<TextSegment> createEnhancedSegmentsWithPosition(
+            List<TextSegment> textSegments,
+            List<DocumentImage> images) {
+
+        List<TextSegment> enhancedSegments = new ArrayList<>();
+
+        for (int i = 0; i < textSegments.size(); i++) {
+            TextSegment segment = textSegments.get(i);
+
+            // 创建增强段落，保存位置和图片元数据
+            EnhancedTextSegment enhancedSegment = EnhancedTextSegment.from(segment.text(), images);
+
+            // 添加段落位置信息到元数据
+            enhancedSegment.metadata().put("segment_index", String.valueOf(i));
+            enhancedSegment.metadata().put("segment_position", String.valueOf(i * 100 / Math.max(1, textSegments.size())));
+
+            enhancedSegments.add(enhancedSegment);
+        }
+
+        return enhancedSegments;
+    }
+
+    /**
+     * 将图片描述穿插在文本中
+     * 策略：将每个图片的描述添加到各个文本段落中，模拟图片在文档中的原始位置
+     */
+    private List<TextSegment> integrateImagesIntoText(List<TextSegment> textSegments, List<DocumentImage> images) {
+        if (images.isEmpty()) {
+            return textSegments;
+        }
+
+        List<TextSegment> enhancedSegments = new ArrayList<>();
+        // 计算每个图片应该穿插在哪个段落
+        int imagesPerSegment = Math.max(1, images.size() / Math.max(1, textSegments.size()));
+        int imageIndex = 0;
+
+        for (int segmentIndex = 0; segmentIndex < textSegments.size(); segmentIndex++) {
+            TextSegment segment = textSegments.get(segmentIndex);
+            StringBuilder enrichedText = new StringBuilder(segment.text());
+
+            // 为当前段落穿插相应的图片描述
+            int imagesToAdd = Math.min(imagesPerSegment, images.size() - imageIndex);
+            for (int i = 0; i < imagesToAdd && imageIndex < images.size(); i++) {
+                DocumentImage image = images.get(imageIndex++);
+                if (image.getImageDescription() != null && !image.getImageDescription().isEmpty()) {
+                    enrichedText.append("\n[图片] ").append(image.getImageDescription());
+                }
+            }
+
+            // 如果是最后一个段落，添加剩余的图片描述
+            if (segmentIndex == textSegments.size() - 1) {
+                while (imageIndex < images.size()) {
+                    DocumentImage image = images.get(imageIndex++);
+                    if (image.getImageDescription() != null && !image.getImageDescription().isEmpty()) {
+                        enrichedText.append("\n[图片] ").append(image.getImageDescription());
+                    }
+                }
+            }
+
+            // 创建增强的文本段落，保存图片元数据
+            EnhancedTextSegment enhancedSegment = EnhancedTextSegment.from(enrichedText.toString(), images);
+            enhancedSegments.add(enhancedSegment);
+
+            log.debug("Text segment {} integrated with images", segmentIndex);
+        }
+
+        return enhancedSegments;
+    }
+
+    /**
+     * 检查ES中索引是否存在
+     */
+    private boolean indexExists(String indexName) {
+        List<String> allIndexNames = embeddingStoreRegistry.queryAllIndexNames();
+        return allIndexNames.contains(indexName);
+
     }
 
     /**

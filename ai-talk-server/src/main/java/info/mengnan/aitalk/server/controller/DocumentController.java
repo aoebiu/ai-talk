@@ -2,14 +2,13 @@ package info.mengnan.aitalk.server.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.server.content.DocumentEmbedding;
+import info.mengnan.aitalk.server.param.DocumentUploadResult;
+import info.mengnan.aitalk.server.param.DocumentUploadResponse;
 import info.mengnan.aitalk.server.param.R;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -32,22 +31,29 @@ public class DocumentController {
         }
         log.info("File upload request received: {}", file.getOriginalFilename());
 
-        String savedFileName = null;
         Long memberId = StpUtil.getLoginIdAsLong();
         try {
-            savedFileName = documentService.uploadAndProcessDocument(memberId, file, type);
+            DocumentUploadResult result = documentService.uploadAndProcessDocument(memberId, file, type);
+
+            DocumentUploadResponse response;
+            if ("success".equals(result.getStatus())) {
+                response = DocumentUploadResponse.success(
+                        file.getOriginalFilename(),
+                        result.getFilename(),
+                        result.getIndexName()
+                );
+                return R.ok(result.getMessage(), response);
+            } else if ("duplicate".equals(result.getStatus())) {
+                response = DocumentUploadResponse.duplicate(result.getIndexName());
+                return R.ok(result.getMessage(), response);
+            } else {
+                response = DocumentUploadResponse.error(result.getMessage());
+                return R.error(response.getMessage());
+            }
         } catch (Exception e) {
             log.error("file Upload Failed", e);
             return R.error("文件上传失败:" + e.getMessage());
         }
-
-        Map<String, Object> response = new HashMap<>();
-
-        response.put("fileName", savedFileName);
-        response.put("originalFileName", file.getOriginalFilename());
-
-        return R.ok("文件上传并处理成功", response);
-
-
     }
 }
+

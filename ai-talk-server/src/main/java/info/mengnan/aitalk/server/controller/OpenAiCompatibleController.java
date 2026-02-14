@@ -10,6 +10,7 @@ import info.mengnan.aitalk.server.param.ChatRequest;
 import info.mengnan.aitalk.rag.ChatService;
 import info.mengnan.aitalk.server.handler.OpenAiStreamingResponseHandler;
 import info.mengnan.aitalk.server.param.openai.OpenApiChatRequest;
+import info.mengnan.aitalk.server.service.ImageProcessingService;
 import info.mengnan.aitalk.server.service.RagAdapterService;
 import info.mengnan.aitalk.server.service.ToolAdapterService;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,9 @@ import reactor.core.publisher.Flux;
 import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
+
+import static info.mengnan.aitalk.rag.config.DefaultModelConfig.DEFAULT_OPTION_ID;
+import static info.mengnan.aitalk.rag.config.DefaultModelConfig.DEFAULT_SESSION;
 
 /**
  * OpenAI 兼容的 API 控制器
@@ -36,10 +40,7 @@ public class OpenAiCompatibleController {
     private final RagAdapterService ragAdapterService;
     private final ToolAdapterService toolAdapterService;
     private final ApiKeyService apiKeyService;
-
-    // TODO 全局配置中获取
-    private final static Long DEFAULT_OPTION_ID = 1L;
-    private final static String DEFAULT_SESSION = "default-session";
+    private final ImageProcessingService imageProcessingService;
 
     /**
      * OpenAI 兼容的聊天接口
@@ -48,9 +49,11 @@ public class OpenAiCompatibleController {
      * - 需要在 Authorization header 中提供 sk- 开头的 API Key
      * - 格式：Authorization: sk-xxx
      */
-    @PostMapping(value = "/chat/completions", produces = MediaType.APPLICATION_NDJSON_VALUE)
+    @PostMapping(value = "/chat/completions",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_NDJSON_VALUE)
     public Flux<String> chatCompletions(@RequestBody OpenApiChatRequest request,
-                                        @RequestHeader(value = "Authorization", required = false) String authorization)  {
+                                        @RequestHeader(value = "Authorization", required = false) String authorization) {
 
         String apiKey = authorization.replace("Bearer ", "").trim();
         if (!request.getStream()) {
@@ -65,8 +68,11 @@ public class OpenAiCompatibleController {
 
         ChatProjectApiKey projectApiKey = apiKeyService.findByApiKey(apiKey);
         chatRequest.setMemberId(projectApiKey.getMemberId());
-        return streamResponse(chatRequest, request.getModel());
-
+        try {
+            return streamResponse(chatRequest, request.getModel());
+        } catch (Exception e) {
+            return Flux.error(e);
+        }
     }
 
     /**
@@ -78,24 +84,24 @@ public class OpenAiCompatibleController {
         long timestamp = System.currentTimeMillis() / 1000;
 
         return Flux.<String>create(sink -> {
-            try {
-                // 从数据库查询并组装 AssembledModels
-                AssembledModels assembledModels = ragAdapterService.assembleModels(chatRequest.getOptionId());
-                Map<ToolSpecification, ToolExecutor> toolMap = toolAdapterService.dynamicTools();
+                    try {
+                        // 从数据库查询并组装 AssembledModels
+                        AssembledModels assembledModels = ragAdapterService.assembleModels(chatRequest.getOptionId());
+                        Map<ToolSpecification, ToolExecutor> toolMap = toolAdapterService.dynamicTools();
 
-                StreamingResponseHandler handler = new OpenAiStreamingResponseHandler(
-                        sink, requestId, timestamp, model);
+                        StreamingResponseHandler handler = new OpenAiStreamingResponseHandler(
+                                sink, requestId, timestamp, model);
 
-                chatService.chatStreaming(chatRequest.getMemberId(),
-                        chatRequest.getSessionId(),
-                        chatRequest.getMessage(),
-                        handler,
-                        assembledModels,toolMap);
-            } catch (Exception e) {
-                sink.error(e);
-            }
-        })
-        .delayElements(Duration.ofMillis(1));
+                        chatService.chatStreaming(chatRequest.getMemberId(),
+                                chatRequest.getSessionId(),
+                                chatRequest.getMessage(),
+                                handler,
+                                assembledModels, toolMap);
+                    } catch (Exception e) {
+                        sink.error(e);
+                    }
+                })
+                .delayElements(Duration.ofMillis(1));
     }
 
     /**
@@ -110,11 +116,22 @@ public class OpenAiCompatibleController {
         // 将所有消息按照角色和内容组合成一个字符串
         StringBuilder messageBuilder = new StringBuilder();
         for (OpenApiChatRequest.Message msg : openAiRequest.getMessages()) {
-            String role = msg.getRole();
-            String content = msg.getContent();
-
-            if (content != null && !content.isEmpty()) {
-                messageBuilder.append(role).append(": ").append(content).append("\n");
+            // 优先使用多模态内容，如果不存在则使用传统内容
+            if (msg.getContentParts() != null && !msg.getContentParts().isEmpty()) {
+                for (OpenApiChatRequest.Message.ContentPart part : msg.getContentParts()) {
+                    if ("text".equals(part.getType()) && part.getText() != null) {
+                        messageBuilder.append(part.getText()).append(" ");
+                    } else if (part.getImageUrl() != null) {
+                        String imageUrl = part.getImageUrl().getUrl();
+                        if (imageUrl != null && !imageUrl.isEmpty()) {
+                            String imageDescription = imageProcessingService.processImageUrl(imageUrl);
+                            messageBuilder.append(imageDescription).append(" ");
+                        }
+                    }
+                }
+            } else if (msg.getContent() != null && !msg.getContent().isEmpty()) {
+                // 回退到传统文本内容
+                messageBuilder.append(msg.getContent()).append("\n");
             }
         }
 
