@@ -228,7 +228,7 @@ public class ChatService {
                 .chatMemoryProvider(memoryId -> MessageWindowChatMemory.builder()
                         .id(memoryId)
                         .maxMessages(assembledModels.maxMessages())
-                        .chatMemoryStore(assembledModels.inDB() ? chatMemoryStore : new ThreadLocalChatMemoryStore())
+                        .chatMemoryStore(assembledModels.inDB() ? chatMemoryStore : null)
                         .build())
                 .build();
     }
@@ -284,32 +284,5 @@ public class ChatService {
         }
 
         return map;
-    }
-
-    /**
-     * 使用第三方客户端没有必要存储在内存中,但是langchain4j又需要通过ChatMemoryStore获取数据,所以可以通过ThreadLocal实现
-     */
-    private static class ThreadLocalChatMemoryStore implements ChatMemoryStore {
-
-        private static final ThreadLocal<Map<Object, List<ChatMessage>>> THREAD_LOCAL_MEMORY =
-            ThreadLocal.withInitial(HashMap::new);
-
-        @Override
-        public List<ChatMessage> getMessages(Object memoryId) {
-            return THREAD_LOCAL_MEMORY.get().getOrDefault(memoryId, List.of());
-        }
-
-        @Override
-        public void updateMessages(Object memoryId, List<ChatMessage> messages) {
-            THREAD_LOCAL_MEMORY.get().put(memoryId, messages);
-        }
-
-        @Override
-        public void deleteMessages(Object memoryId) {
-            THREAD_LOCAL_MEMORY.get().remove(memoryId);
-            if (THREAD_LOCAL_MEMORY.get().isEmpty()) {
-                THREAD_LOCAL_MEMORY.remove();
-            }
-        }
     }
 }
