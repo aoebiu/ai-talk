@@ -3,7 +3,6 @@ package info.mengnan.aitalk.server.controller;
 import cn.dev33.satoken.stp.StpUtil;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.service.tool.ToolExecutor;
-import info.mengnan.aitalk.common.param.ModelType;
 import info.mengnan.aitalk.rag.container.assemble.AssembledModels;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
 import info.mengnan.aitalk.rag.service.DirectModelInvoker;
@@ -69,7 +68,9 @@ public class ChatController {
         if (chatSession != null) {
             List<ChatMessage> chatMessageList = chatMessageService.findChat(chatSession.getChatSessionId());
             if (chatMessageList.isEmpty()) {
-                ChatSessionResponse sessionResult = new ChatSessionResponse(chatSession.getChatSessionId(), ChatSession.DEFAULT_TITLE);
+                ChatSessionResponse sessionResult = new ChatSessionResponse(chatSession.getChatSessionId(),
+                        ChatSession.DEFAULT_TITLE,
+                        chatSession.getUpdatedAt());
                 return R.ok(sessionResult);
             }
         }
@@ -80,7 +81,7 @@ public class ChatController {
         session.setMemberId(StpUtil.getLoginIdAsLong());
         session.setTitle(ChatSession.DEFAULT_TITLE);
         chatSessionService.createChat(session);
-        ChatSessionResponse sessionResult = new ChatSessionResponse(session.getChatSessionId(), ChatSession.DEFAULT_TITLE);
+        ChatSessionResponse sessionResult = new ChatSessionResponse(sessionId, ChatSession.DEFAULT_TITLE, session.getUpdatedAt());
         return R.ok(sessionResult);
     }
 
@@ -135,8 +136,8 @@ public class ChatController {
     /**
      * 对话列表
      */
-    @PostMapping(value = "/history/{sessionId}")
-    public R history(@PathVariable String sessionId) {
+    @GetMapping(value = "/history/{sessionId}")
+    public R history(@PathVariable("sessionId") String sessionId) {
         List<ChatMessage> list = chatMessageService.findChatByRole(sessionId,
                 List.of(ASSISTANT.n(), SYSTEM.n(), USER.n()));
         return R.ok(list);
@@ -152,5 +153,18 @@ public class ChatController {
     public R clearHistory(@PathVariable String sessionId) {
         chatMessageService.deleteBySessionId(sessionId);
         return R.ok();
+    }
+
+    /**
+     * 获取所有对话会话
+     */
+    @GetMapping(value = "/sessions")
+    public R getAllSessions() {
+        Long memberId = StpUtil.getLoginIdAsLong();
+        List<ChatSession> sessions = chatSessionService.findAllByMemberId(memberId);
+        List<ChatSessionResponse> responses = sessions.stream()
+                .map(session -> new ChatSessionResponse(session.getChatSessionId(), session.getTitle(), session.getUpdatedAt()))
+                .toList();
+        return R.ok(responses);
     }
 }

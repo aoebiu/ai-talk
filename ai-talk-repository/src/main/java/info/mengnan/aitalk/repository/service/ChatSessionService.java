@@ -7,6 +7,8 @@ import info.mengnan.aitalk.repository.mapper.ChatSessionMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ChatSessionService {
@@ -32,5 +34,10 @@ public class ChatSessionService {
     public ChatSession findLastByMemberId(Long memberId) {
         return mapper.selectOne(new LambdaQueryWrapper<ChatSession>()
                 .eq(ChatSession::getMemberId, memberId).last("limit 1"));
+    }
+
+    public List<ChatSession> findAllByMemberId(Long memberId) {
+        return mapper.selectList(new LambdaQueryWrapper<ChatSession>()
+                .eq(ChatSession::getMemberId, memberId));
     }
 }
