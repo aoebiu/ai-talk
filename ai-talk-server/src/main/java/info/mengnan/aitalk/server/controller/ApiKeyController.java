@@ -2,20 +2,21 @@ package info.mengnan.aitalk.server.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.repository.entity.ChatProjectApiKey;
-import info.mengnan.aitalk.repository.service.ApiKeyService;
+import info.mengnan.aitalk.repository.service.ProjectApiKeyService;
 import info.mengnan.aitalk.server.param.R;
+import info.mengnan.aitalk.server.vo.ProjectApiKeyVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 
 /**
  * API Key 管理控制器
- * 用户可以通过此接口创建和管理自己的 OpenAI API Key
+ * 管理本项目创建的 API Key（chat_project_api_key 表）
+ * 区别于 chat_model_api_key（外部模型的 API Key）
  */
 @Slf4j
 @RestController
@@ -23,7 +24,33 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ApiKeyController {
 
-    private final ApiKeyService apiKeyService;
+    private final ProjectApiKeyService projectApiKeyService;
+
+    /**
+     * 获取当前用户的 API Key 列表（列表中 key 脱敏显示）
+     */
+    @GetMapping("/list")
+    public R listApiKeys() {
+        Long memberId = StpUtil.getLoginIdAsLong();
+        List<ChatProjectApiKey> keys = projectApiKeyService.listByMemberId(memberId);
+        List<ProjectApiKeyVO> list = keys.stream().map(k -> {
+            ProjectApiKeyVO vo = new ProjectApiKeyVO();
+            vo.setId(k.getId());
+            vo.setName(k.getName());
+            vo.setStatus(k.getStatus());
+            vo.setExpiresAt(k.getExpiresAt());
+            vo.setLastUsedAt(k.getLastUsedAt());
+            vo.setCreatedAt(k.getCreatedAt());
+            vo.setApiKey(maskKey(k.getApiKey()));
+            return vo;
+        }).toList();
+        return R.ok(list);
+    }
+
+    private static String maskKey(String apiKey) {
+        if (apiKey == null || apiKey.length() < 8) return "sk-****";
+        return "sk-****" + apiKey.substring(apiKey.length() - 4);
+    }
 
     /**
      * 创建新的 API Key
@@ -32,8 +59,8 @@ public class ApiKeyController {
      */
     @PostMapping("/create")
     public R createApiKey(
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) Integer expiresInDays) {
+            @RequestParam(name = "name") String name,
+            @RequestParam("expiresInDays") Integer expiresInDays) {
 
         Long memberId = StpUtil.getLoginIdAsLong();
 
@@ -48,9 +75,15 @@ public class ApiKeyController {
         if (expiresInDays != null && expiresInDays > 0) {
             entity.setExpiresAt(LocalDateTime.now().plusDays(expiresInDays));
         }
-        apiKeyService.insert(entity);
+        projectApiKeyService.insert(entity);
         log.info("User {} created API Key: {}", memberId, entity.getId());
-        return R.ok();
+
+        ProjectApiKeyVO vo = new ProjectApiKeyVO();
+        vo.setId(entity.getId());
+        vo.setApiKey(apiKey);
+        vo.setName(entity.getName());
+        vo.setExpiresAt(entity.getExpiresAt());
+        return R.ok(vo);
     }
 
     /**
@@ -60,14 +93,13 @@ public class ApiKeyController {
     public R disableApiKey(@PathVariable Long id) {
         Long memberId = StpUtil.getLoginIdAsLong();
 
-        ChatProjectApiKey projectApiKey = apiKeyService.findById(id);
+        ChatProjectApiKey projectApiKey = projectApiKeyService.findById(id);
         if (projectApiKey == null || !memberId.equals(projectApiKey.getMemberId())) {
             return R.error("该 API Key 无法删除");
         }
-        // TODO: 添加权限检查，确保只能禁用自己的 API Key
 
         projectApiKey.setStatus(0);
-        apiKeyService.updateById(projectApiKey);
+        projectApiKeyService.updateById(projectApiKey);
         return R.ok();
     }
 
@@ -78,11 +110,11 @@ public class ApiKeyController {
     public R deleteApiKey(@PathVariable Long id) {
         Long memberId = StpUtil.getLoginIdAsLong();
 
-        ChatProjectApiKey projectApiKey = apiKeyService.findById(id);
+        ChatProjectApiKey projectApiKey = projectApiKeyService.findById(id);
         if (projectApiKey == null || !memberId.equals(projectApiKey.getMemberId())) {
             return R.error("该 API Key 无法删除");
         }
-        apiKeyService.deleteById(id);
+        projectApiKeyService.deleteById(id);
         return R.ok();
     }
 }

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -38,5 +39,10 @@ public class MemberService {
 
     public void deleteById(Long id) {
         mapper.deleteById(id);
+    }
+
+    public List<ChatMember> findAll() {
+        return mapper.selectList(new LambdaQueryWrapper<ChatMember>()
+                .orderByDesc(ChatMember::getId));
     }
 }

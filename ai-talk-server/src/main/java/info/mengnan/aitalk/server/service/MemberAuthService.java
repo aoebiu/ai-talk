@@ -1,4 +1,4 @@
-package info.mengnan.aitalk.server.service;
+ package info.mengnan.aitalk.server.service;
 
 import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.repository.entity.ChatMember;
@@ -10,6 +10,8 @@ import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -138,5 +140,28 @@ public class MemberAuthService {
      */
     private String encryptPassword(String password) {
         return DigestUtils.md5DigestAsHex(password.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * 获取所有用户列表
+     */
+    public java.util.List<MemberResponse> getAllMembers() {
+        List<ChatMember> members = memberService.findAll();
+        ArrayList<MemberResponse> result = new ArrayList<>();
+        for (ChatMember member : members) {
+            result.add(buildMemberVO(member, null));
+        }
+        return result;
+    }
+
+    /**
+     * 删除用户
+     */
+    public void deleteMember(Long id) {
+        Long currentMemberId = StpUtil.getLoginIdAsLong();
+        if (currentMemberId.equals(id)) {
+            throw new IllegalArgumentException("不能删除当前登录的账号");
+        }
+        memberService.deleteById(id);
     }
 }

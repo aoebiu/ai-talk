@@ -1,7 +1,7 @@
 package info.mengnan.aitalk.server.interceptor;
 
 import info.mengnan.aitalk.repository.entity.ChatProjectApiKey;
-import info.mengnan.aitalk.repository.service.ApiKeyService;
+import info.mengnan.aitalk.repository.service.ProjectApiKeyService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @RequiredArgsConstructor
 public class OpenAiApiKeyInterceptor implements HandlerInterceptor {
 
-    private final ApiKeyService apiKeyService;
+    private final ProjectApiKeyService projectApiKeyService;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -43,7 +43,7 @@ public class OpenAiApiKeyInterceptor implements HandlerInterceptor {
         }
 
         // 验证 API Key
-        ChatProjectApiKey validatedKey = apiKeyService.validateApiKey(apiKey);
+        ChatProjectApiKey validatedKey = projectApiKeyService.validateApiKey(apiKey);
         if (validatedKey == null) {
             log.warn("Invalid or expired API Key: {}", apiKey);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

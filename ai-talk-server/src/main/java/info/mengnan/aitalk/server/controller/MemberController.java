@@ -82,4 +82,21 @@ public class MemberController {
         );
         return R.ok();
     }
+
+    /**
+     * 获取所有用户列表
+     */
+    @GetMapping("/list")
+    public R list() {
+        return R.ok(memberAuthService.getAllMembers());
+    }
+
+    /**
+     * 删除用户
+     */
+    @PostMapping("/delete/{id}")
+    public R delete(@PathVariable("id") Long id) {
+        memberAuthService.deleteMember(id);
+        return R.ok();
+    }
 }

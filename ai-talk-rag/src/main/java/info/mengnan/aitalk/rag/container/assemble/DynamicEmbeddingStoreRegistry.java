@@ -102,6 +102,24 @@ public class DynamicEmbeddingStoreRegistry {
     }
 
     /**
+     * 删除指定的 Elasticsearch 索引
+     *
+     * @param indexName 索引名称
+     */
+    public void deleteIndex(String indexName) {
+        try (RestClient restClient = createRestClient(this.properties);
+             RestClientTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper())) {
+            ElasticsearchClient client = new ElasticsearchClient(transport);
+
+            client.indices().delete(builder -> builder.index(indexName));
+            log.info("Successfully deleted index: {}", indexName);
+        } catch (Exception e) {
+            log.error("Failed to delete index: {}", indexName, e);
+            throw new RuntimeException("Failed to delete index: " + indexName, e);
+        }
+    }
+
+    /**
      * 查询所有 ES 索引
      */
     private List<String> queryAllIndices(RestClient restClient, ElasticsearchProperties properties) throws IOException {

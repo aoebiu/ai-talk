@@ -63,7 +63,8 @@ public class DocumentEmbedding {
             return DocumentUploadResult.error("文件名无效");
         }
 
-        String indexName = sanitizeIndexName(originalFilename);
+        // 索引名称包含 memberId 前缀，实现用户隔离
+        String indexName = buildUserIndexName(memberId, originalFilename);
         if (indexExists(indexName)) {
             log.warn("Document {} already exists in index {}, skipping upload", originalFilename, indexName);
             return DocumentUploadResult.duplicate("文件已存在，无需重复上传", indexName);
@@ -123,7 +124,7 @@ public class DocumentEmbedding {
             ModelConfig embeddingConfig = modelConfigService.findModel(memberId, embeddingModelName, ModelType.EMBEDDING);
             if (embeddingConfig == null) {
                 log.error("embedding Model Configuration Not Found: {}", embeddingModelName);
-                throw new RuntimeException("Embedding 模型配置不存在: " + embeddingModelName);
+                throw new RuntimeException("Embedding 模型配置不存在：" + embeddingModelName);
             }
 
             // 动态创建 EmbeddingModel
@@ -214,7 +215,7 @@ public class DocumentEmbedding {
     }
 
     /**
-     * 检查ES中索引是否存在
+     * 检查 ES 中索引是否存在
      */
     private boolean indexExists(String indexName) {
         List<String> allIndexNames = embeddingStoreRegistry.queryAllIndexNames();
@@ -230,7 +231,7 @@ public class DocumentEmbedding {
             case ".pdf" -> new ApachePdfBoxDocumentParser();
             case ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx" -> new ApachePoiDocumentParser();
             case ".md", ".txt" -> new TextDocumentParser();
-            default -> throw new RuntimeException("不支持的文件类型: " + extension);
+            default -> throw new RuntimeException("不支持的文件类型：" + extension);
         };
 
         try (InputStream inputStream = Files.newInputStream(filePath)) {
@@ -260,5 +261,54 @@ public class DocumentEmbedding {
 
         // 转小写，替换特殊字符为下划线
         return nameWithoutExt.toLowerCase().replaceAll("[' \"*,/<>?\\\\|]", "");
+    }
+
+    /**
+     * 获取已上传的文档列表（所有索引名称）
+     * @return 文档名称列表
+     */
+    public List<String> getAllDocuments() {
+        return embeddingStoreRegistry.queryAllIndexNames();
+    }
+
+    /**
+     * 获取当前用户的文档列表
+     * @param memberId 用户 ID
+     * @return 文档名称列表
+     */
+    public List<String> getUserDocuments(Long memberId) {
+        List<String> allIndexNames = embeddingStoreRegistry.queryAllIndexNames();
+        String prefix = memberId + "_";
+        return allIndexNames.stream()
+                .filter(name -> name.startsWith(prefix))
+                .map(name -> name.substring(prefix.length())) // 去掉前缀，返回原始文件名
+                .toList();
+    }
+
+    /**
+     * 构建用户文档索引名称（包含 memberId 前缀）
+     */
+    private String buildUserIndexName(Long memberId, String filename) {
+        return memberId + "_" + sanitizeIndexName(filename);
+    }
+
+    /**
+     * 删除指定文档
+     * @param memberId 用户 ID
+     * @param filename 文件名
+     * @return 是否删除成功
+     */
+    public boolean deleteDocument(Long memberId, String filename) {
+        String indexName = buildUserIndexName(memberId, filename);
+        List<String> allIndexNames = embeddingStoreRegistry.queryAllIndexNames();
+
+        if (!allIndexNames.contains(indexName)) {
+            log.warn("Document {} not found for member {}", filename, memberId);
+            return false;
+        }
+
+        embeddingStoreRegistry.deleteIndex(indexName);
+        log.info("Successfully deleted document {} for member {}", filename, memberId);
+        return true;
     }
 }

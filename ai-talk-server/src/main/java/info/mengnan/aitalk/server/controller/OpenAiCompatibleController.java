@@ -5,7 +5,7 @@ import dev.langchain4j.service.tool.ToolExecutor;
 import info.mengnan.aitalk.rag.container.assemble.AssembledModels;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
 import info.mengnan.aitalk.repository.entity.ChatProjectApiKey;
-import info.mengnan.aitalk.repository.service.ApiKeyService;
+import info.mengnan.aitalk.repository.service.ProjectApiKeyService;
 import info.mengnan.aitalk.server.param.ChatRequest;
 import info.mengnan.aitalk.rag.ChatService;
 import info.mengnan.aitalk.server.handler.OpenAiStreamingResponseHandler;
@@ -39,7 +39,7 @@ public class OpenAiCompatibleController {
     private final ChatService chatService;
     private final RagAdapterService ragAdapterService;
     private final ToolAdapterService toolAdapterService;
-    private final ApiKeyService apiKeyService;
+    private final ProjectApiKeyService projectApiKeyService;
     private final ImageProcessingService imageProcessingService;
 
     /**
@@ -66,7 +66,7 @@ public class OpenAiCompatibleController {
 
         ChatRequest chatRequest = buildInternalRequest(request);
 
-        ChatProjectApiKey projectApiKey = apiKeyService.findByApiKey(apiKey);
+        ChatProjectApiKey projectApiKey = projectApiKeyService.findByApiKey(apiKey);
         chatRequest.setMemberId(projectApiKey.getMemberId());
         try {
             return streamResponse(chatRequest, request.getModel());

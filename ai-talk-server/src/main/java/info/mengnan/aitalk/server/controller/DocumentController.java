@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/documents")
@@ -37,11 +39,7 @@ public class DocumentController {
 
             DocumentUploadResponse response;
             if ("success".equals(result.getStatus())) {
-                response = DocumentUploadResponse.success(
-                        file.getOriginalFilename(),
-                        result.getFilename(),
-                        result.getIndexName()
-                );
+                response = DocumentUploadResponse.success(file.getOriginalFilename(), result.getFilename(), result.getIndexName());
                 return R.ok(result.getMessage(), response);
             } else if ("duplicate".equals(result.getStatus())) {
                 response = DocumentUploadResponse.duplicate(result.getIndexName());
@@ -55,5 +53,30 @@ public class DocumentController {
             return R.error("文件上传失败:" + e.getMessage());
         }
     }
-}
 
+    /**
+     * 获取文档列表
+     */
+    @GetMapping("/list")
+    public R listDocuments() {
+        Long memberId = StpUtil.getLoginIdAsLong();
+        List<String> documents = documentService.getUserDocuments(memberId);
+        return R.ok(documents);
+    }
+
+    /**
+     * 删除文档
+     */
+    @DeleteMapping("/{filename}")
+    public R deleteDocument(@PathVariable("filename") String filename) {
+        Long memberId = StpUtil.getLoginIdAsLong();
+        log.info("Delete document request received: {} from member {}", filename, memberId);
+
+        boolean deleted = documentService.deleteDocument(memberId, filename);
+        if (deleted) {
+            return R.ok("文档删除成功");
+        } else {
+            return R.error("文档不存在");
+        }
+    }
+}

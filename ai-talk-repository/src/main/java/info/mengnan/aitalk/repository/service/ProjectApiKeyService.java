@@ -7,15 +7,25 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class ApiKeyService {
+public class ProjectApiKeyService {
 
     private final ApiKeyMapper mapper;
 
     /**
-     * 通过id查找
+     * 查询某用户的全部 API Key（按创建时间倒序）
+     */
+    public List<ChatProjectApiKey> listByMemberId(Long memberId) {
+        return mapper.selectList(new LambdaQueryWrapper<ChatProjectApiKey>()
+                .eq(ChatProjectApiKey::getMemberId, memberId)
+                .orderByDesc(ChatProjectApiKey::getCreatedAt));
+    }
+
+    /**
+     * 通过 id 查找
      */
     public ChatProjectApiKey findById(Long id) {
         return mapper.selectById(id);
