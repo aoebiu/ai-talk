@@ -25,6 +25,11 @@
             <artifactId>ai-talk-common</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>info.mengnan</groupId>
+            <artifactId>ai-talk-kb</artifactId>
+        </dependency>
+
         <!-- LangChain4j Core -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
@@ -56,12 +61,6 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-elasticsearch</artifactId>
-        </dependency>
-
-        <!-- Elasticsearch Java Client -->
-        <dependency>
-            <groupId>co.elastic.clients</groupId>
-            <artifactId>elasticsearch-java</artifactId>
         </dependency>
 
         <!-- Lombok -->

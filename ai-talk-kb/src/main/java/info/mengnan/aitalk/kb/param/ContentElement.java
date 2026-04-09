@@ -1,4 +1,4 @@
-package info.mengnan.aitalk.server.document;
+package info.mengnan.aitalk.kb.param;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

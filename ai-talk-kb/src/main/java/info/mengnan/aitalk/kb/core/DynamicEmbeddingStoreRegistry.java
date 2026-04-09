@@ -1,4 +1,4 @@
-package info.mengnan.aitalk.rag.container.assemble;
+package info.mengnan.aitalk.kb.core;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
@@ -9,7 +9,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore;
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchRequestFailedException;
-import info.mengnan.aitalk.rag.config.ElasticsearchProperties;
+import info.mengnan.aitalk.kb.config.ElasticsearchProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;

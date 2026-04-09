@@ -1,4 +1,4 @@
-package info.mengnan.aitalk.rag.config;
+package info.mengnan.aitalk.kb.config;
 
 import lombok.Data;
 

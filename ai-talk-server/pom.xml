@@ -31,6 +31,11 @@
             <artifactId>ai-talk-rag</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>info.mengnan</groupId>
+            <artifactId>ai-talk-kb</artifactId>
+        </dependency>
+
         <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -48,24 +53,6 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-spring-boot-starter</artifactId>
         </dependency>
-
-        <!-- LangChain4j Document Parsers -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-document-parser-apache-pdfbox</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-document-parser-apache-poi</artifactId>
-        </dependency>
-
 
         <!-- Lombok -->
         <dependency>

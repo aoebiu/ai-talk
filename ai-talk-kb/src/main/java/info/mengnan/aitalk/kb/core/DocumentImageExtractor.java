@@ -1,17 +1,12 @@
-package info.mengnan.aitalk.server.document;
+package info.mengnan.aitalk.kb.core;
 
-import dev.langchain4j.data.message.ImageContent;
-import dev.langchain4j.data.message.TextContent;
-import dev.langchain4j.data.message.UserMessage;
-import info.mengnan.aitalk.common.param.ModelType;
-import info.mengnan.aitalk.rag.service.DirectModelInvoker;
+import info.mengnan.aitalk.kb.param.DocumentImage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFPictureData;
 import org.apache.poi.xslf.usermodel.XSLFPictureData;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
-import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -21,11 +16,10 @@ import java.util.*;
  * 文档图片提取工具
  */
 @Slf4j
-@Service
 @RequiredArgsConstructor
 public class DocumentImageExtractor {
 
-    private final DirectModelInvoker directModelInvoker;
+    private final ImageTextGenerator imageTextGenerator;
 
     /**
      * 从 PDF 提取图片
@@ -63,7 +57,7 @@ public class DocumentImageExtractor {
                 String filename = String.format("word_image_%d.%s", ++imageCount, extension);
                 byte[] data = pictureData.getData();
 
-                String imageDescription = directModelInvoker.imageToText(data, "identify_picture","image/png");
+                String imageDescription = imageTextGenerator.imageToText(data, "identify_picture","image/png");
 
                 DocumentImage image = DocumentImage.builder()
                         .filename(filename)
@@ -118,7 +112,7 @@ public class DocumentImageExtractor {
 
                 // 生成图片描述而不保存图片
                 byte[] data = pictureData.getData();
-                String imageDescription = directModelInvoker.imageToText(data, "identify_picture","image/png");
+                String imageDescription = imageTextGenerator.imageToText(data, "identify_picture","image/png");
 
                 DocumentImage image = DocumentImage.builder()
                         .filename(filename)

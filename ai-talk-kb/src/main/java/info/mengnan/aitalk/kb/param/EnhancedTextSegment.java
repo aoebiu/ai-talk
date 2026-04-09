@@ -1,4 +1,4 @@
-package info.mengnan.aitalk.server.document;
+package info.mengnan.aitalk.kb.param;
 
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.segment.TextSegment;

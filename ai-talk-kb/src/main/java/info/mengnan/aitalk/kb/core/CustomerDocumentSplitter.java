@@ -1,4 +1,4 @@
-package info.mengnan.aitalk.server.document;
+package info.mengnan.aitalk.kb.core;
 
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;

@@ -15,6 +15,7 @@
         <module>ai-talk-repository</module>
         <module>ai-talk-rag</module>
         <module>ai-talk-server</module>
+        <module>ai-talk-kb</module>
     </modules>
 
     <properties>
@@ -56,6 +57,11 @@
             <dependency>
                 <groupId>info.mengnan</groupId>
                 <artifactId>ai-talk-rag</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>info.mengnan</groupId>
+                <artifactId>ai-talk-kb</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

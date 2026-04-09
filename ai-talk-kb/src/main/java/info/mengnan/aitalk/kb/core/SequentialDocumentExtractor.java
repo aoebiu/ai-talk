@@ -1,6 +1,7 @@
-package info.mengnan.aitalk.server.document;
+package info.mengnan.aitalk.kb.core;
 
-import info.mengnan.aitalk.rag.service.DirectModelInvoker;
+import info.mengnan.aitalk.kb.param.ContentElement;
+import info.mengnan.aitalk.kb.param.DocumentImage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xwpf.usermodel.*;
@@ -9,7 +10,6 @@ import org.apache.poi.xslf.usermodel.XSLFShape;
 import org.apache.poi.xslf.usermodel.XSLFPictureShape;
 import org.apache.poi.xslf.usermodel.XSLFSlide;
 import org.apache.poi.xslf.usermodel.XSLFTextShape;
-import org.springframework.stereotype.Service;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -21,11 +21,10 @@ import java.util.*;
  * 保持文本和图片在原文档中的相对位置
  */
 @Slf4j
-@Service
 @RequiredArgsConstructor
 public class SequentialDocumentExtractor {
 
-    private final DirectModelInvoker directModelInvoker;
+    private final ImageTextGenerator imageTextGenerator;
 
     /**
      * 从 Word 文档按顺序提取内容
@@ -100,8 +99,7 @@ public class SequentialDocumentExtractor {
                 // 遍历幻灯片中的所有形状
                 for (XSLFShape shape : slide.getShapes()) {
                     // 处理图片
-                    if (shape instanceof XSLFPictureShape) {
-                        XSLFPictureShape pictureShape = (XSLFPictureShape) shape;
+                    if (shape instanceof XSLFPictureShape pictureShape) {
                         try {
                             DocumentImage image = createPowerPointImage(pictureShape, position);
                             elements.add(ContentElement.ofImage(image, position++));
@@ -110,8 +108,7 @@ public class SequentialDocumentExtractor {
                         }
                     }
                     // 处理文本形状
-                    else if (shape instanceof XSLFTextShape) {
-                        XSLFTextShape textShape = (XSLFTextShape) shape;
+                    else if (shape instanceof XSLFTextShape textShape) {
                         try {
                             String text = textShape.getText();
                             if (text != null && !text.trim().isEmpty()) {
@@ -162,7 +159,7 @@ public class SequentialDocumentExtractor {
 
         String filename = String.format("word_image_%d.%s", position, extension);
         byte[] data = pictureData.getData();
-        String imageDescription = directModelInvoker.imageToText(data, "identify_picture","image/png");
+        String imageDescription = imageTextGenerator.imageToText(data, "identify_picture","image/png");
 
         return DocumentImage.builder()
                 .filename(filename)
@@ -184,7 +181,7 @@ public class SequentialDocumentExtractor {
 
         String filename = String.format("ppt_image_%d.%s", position, extension);
         byte[] data = pictureData.getPictureData().getData();
-        String imageDescription = directModelInvoker.imageToText(data, "identify_picture","image/png");
+        String imageDescription = imageTextGenerator.imageToText(data, "identify_picture","image/png");
 
         return DocumentImage.builder()
                 .filename(filename)

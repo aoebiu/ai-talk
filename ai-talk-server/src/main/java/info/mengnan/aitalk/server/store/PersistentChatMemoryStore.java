@@ -4,7 +4,6 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
-import info.mengnan.aitalk.rag.config.DefaultModelConfig;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
 import info.mengnan.aitalk.repository.service.ChatMessageService;
 import info.mengnan.aitalk.server.content.ChatHistoryCompressing;

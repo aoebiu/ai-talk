@@ -13,19 +13,18 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import info.mengnan.aitalk.common.param.ModelType;
 import info.mengnan.aitalk.rag.config.ModelConfig;
-import info.mengnan.aitalk.rag.container.assemble.DynamicEmbeddingStoreRegistry;
+import info.mengnan.aitalk.kb.core.DynamicEmbeddingStoreRegistry;
 import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
-import info.mengnan.aitalk.server.document.DocumentImage;
-import info.mengnan.aitalk.server.document.DocumentImageExtractor;
-import info.mengnan.aitalk.server.document.EnhancedTextSegment;
-import info.mengnan.aitalk.server.document.ContentElement;
-import info.mengnan.aitalk.server.document.SequentialDocumentExtractor;
+import info.mengnan.aitalk.kb.param.ContentElement;
+import info.mengnan.aitalk.kb.param.DocumentImage;
+import info.mengnan.aitalk.kb.core.DocumentImageExtractor;
+import info.mengnan.aitalk.kb.param.EnhancedTextSegment;
+import info.mengnan.aitalk.kb.core.SequentialDocumentExtractor;
 import info.mengnan.aitalk.server.param.DocumentUploadResult;
 import info.mengnan.aitalk.server.service.ModelConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -38,7 +37,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
-@Service
 @RequiredArgsConstructor
 public class DocumentEmbedding {
 

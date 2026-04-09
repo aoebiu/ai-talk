@@ -1,7 +1,6 @@
 package info.mengnan.aitalk.rag;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
@@ -25,10 +24,10 @@ import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.ToolExecutor;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
+import info.mengnan.aitalk.kb.core.DynamicEmbeddingStoreRegistry;
 import info.mengnan.aitalk.rag.config.ModelConfig;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
 import info.mengnan.aitalk.rag.container.assemble.AssembledModels;
-import info.mengnan.aitalk.rag.container.assemble.DynamicEmbeddingStoreRegistry;
 import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
 import info.mengnan.aitalk.rag.service.ModelConfigProvider;
 import lombok.extern.slf4j.Slf4j;
