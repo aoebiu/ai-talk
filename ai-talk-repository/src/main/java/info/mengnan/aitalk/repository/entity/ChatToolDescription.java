@@ -16,6 +16,11 @@ public class ChatToolDescription {
     private Long id;
 
     /**
+     * 用户ID
+     */
+    private Long memberId;
+
+    /**
      * 工具名称
      */
     private String name;

@@ -20,7 +20,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public R handleNotLoginException(NotLoginException e) {
         log.warn("not Logged In Exception: {}", e.getMessage());
-        return R.error("还未登录,请登录后重试");
+        return R.error("请登录后重试");
     }
 
     /**

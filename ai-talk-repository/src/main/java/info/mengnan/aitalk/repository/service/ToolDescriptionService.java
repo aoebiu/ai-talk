@@ -17,12 +17,16 @@ public class ToolDescriptionService {
         return mapper.findById(id);
     }
 
-    public ChatToolDescription findByName(String name) {
-        return mapper.findByName(name);
+    public ChatToolDescription findByNameAndMemberId(String name, Long memberId) {
+        return mapper.findByNameAndMemberId(name, memberId);
     }
 
     public List<ChatToolDescription> findAll() {
         return mapper.findAll();
+    }
+
+    public List<ChatToolDescription> findAllByMemberId(Long memberId) {
+        return mapper.findAllByMemberId(memberId);
     }
 
     public void insert(ChatToolDescription entity) {

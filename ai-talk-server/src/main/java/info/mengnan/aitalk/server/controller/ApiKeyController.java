@@ -7,6 +7,7 @@ import info.mengnan.aitalk.server.param.R;
 import info.mengnan.aitalk.server.vo.ProjectApiKeyVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -59,8 +60,8 @@ public class ApiKeyController {
      */
     @PostMapping("/create")
     public R createApiKey(
-            @RequestParam(name = "name") String name,
-            @RequestParam("expiresInDays") Integer expiresInDays) {
+            @RequestParam(name = "name", required = false) String name,
+            @RequestParam(name = "expiresInDays", required = false) Integer expiresInDays) {
 
         Long memberId = StpUtil.getLoginIdAsLong();
 
@@ -69,7 +70,7 @@ public class ApiKeyController {
         ChatProjectApiKey entity = new ChatProjectApiKey();
         entity.setApiKey(apiKey);
         entity.setMemberId(memberId);
-        entity.setName(name);
+        entity.setName(StringUtils.hasText(name) ? name.trim() : null);
         entity.setStatus(1);
 
         if (expiresInDays != null && expiresInDays > 0) {
@@ -90,7 +91,7 @@ public class ApiKeyController {
      * 禁用 API Key
      */
     @PostMapping("/disable/{id}")
-    public R disableApiKey(@PathVariable Long id) {
+    public R disableApiKey(@PathVariable("id") Long id) {
         Long memberId = StpUtil.getLoginIdAsLong();
 
         ChatProjectApiKey projectApiKey = projectApiKeyService.findById(id);
@@ -107,7 +108,7 @@ public class ApiKeyController {
      * 删除 API Key
      */
     @DeleteMapping("/{id}")
-    public R deleteApiKey(@PathVariable Long id) {
+    public R deleteApiKey(@PathVariable("id") Long id) {
         Long memberId = StpUtil.getLoginIdAsLong();
 
         ChatProjectApiKey projectApiKey = projectApiKeyService.findById(id);

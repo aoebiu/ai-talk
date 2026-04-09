@@ -39,4 +39,8 @@ public class R {
         r.setMessage(message);
         return r;
     }
+
+    public static R unauthorized() {
+        return error("unauthorized");
+    }
 }
