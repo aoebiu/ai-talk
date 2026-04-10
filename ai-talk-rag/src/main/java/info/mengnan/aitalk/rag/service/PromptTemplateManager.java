@@ -24,7 +24,8 @@ public class PromptTemplateManager {
             "query_router", PromptTemplateConstant.QUERY_ROUTER_PROMPT_TEMPLATE,
             "compression", PromptTemplateConstant.COMPRESSION_PROMPT_TEMPLATE,
             "content_injector", PromptTemplateConstant.CONTENT_INJECTOR_PROMPT_TEMPLATE,
-            "identify_picture", PromptTemplateConstant.IDENTIFY_PICTURE_PROMPT_TEMPLATE
+            "identify_picture", PromptTemplateConstant.IDENTIFY_PICTURE_PROMPT_TEMPLATE,
+            "tool_execute_script_generation", PromptTemplateConstant.TOOL_EXECUTE_SCRIPT_GENERATION_PROMPT_TEMPLATE
     );
 
     /**

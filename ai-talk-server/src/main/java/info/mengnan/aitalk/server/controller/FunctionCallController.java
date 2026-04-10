@@ -1,9 +1,11 @@
 package info.mengnan.aitalk.server.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
+import info.mengnan.aitalk.rag.service.DirectModelInvoker;
 import info.mengnan.aitalk.repository.entity.ChatToolDescription;
 import info.mengnan.aitalk.repository.service.ToolDescriptionService;
 import info.mengnan.aitalk.server.param.FunctionCallRequest;
+import info.mengnan.aitalk.server.param.FunctionCallScriptGenerateRequest;
 import info.mengnan.aitalk.server.param.R;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Function Call 工具管理控制器
@@ -22,6 +25,7 @@ import java.util.List;
 public class FunctionCallController {
 
     private final ToolDescriptionService toolDescriptionService;
+    private final DirectModelInvoker directModelInvoker;
 
     /**
      * 获取当前用户的所有工具列表
@@ -54,7 +58,6 @@ public class FunctionCallController {
     @PostMapping("/create")
     public R create(@Validated @RequestBody FunctionCallRequest request) {
         Long memberId = StpUtil.getLoginIdAsLong();
-
         ChatToolDescription existing = toolDescriptionService.findByNameAndMemberId(request.getName(), memberId);
         if (existing != null) {
             return R.error("工具名称已存在");
@@ -72,6 +75,22 @@ public class FunctionCallController {
         log.info("User {} created function call tool: {} (id={})", memberId, entity.getName(), entity.getId());
 
         return R.ok(entity);
+    }
+
+    /**
+     * 根据工具描述、参数 Schema 与本次入参，由默认对话模型仅生成 execute 脚本正文
+     */
+    @PostMapping("/generate-script")
+    public R generateScript(@Validated @RequestBody FunctionCallScriptGenerateRequest request) {
+        StpUtil.getLoginIdAsLong();
+        Map<String, Object> variables = Map.of(
+                "name", request.getName(),
+                "description", request.getDescription(),
+                "property", request.getProperty(),
+                "required", request.getRequired()
+        );
+        String script = directModelInvoker.directInvoke("tool_execute_script_generation", variables);
+        return R.ok(Map.of("script", script));
     }
 
     /**

@@ -35,11 +35,24 @@ public final class HttpClients {
      * @return 响应内容(JSON 字符串)
      */
     public String get(String url) {
+        return get(url, DEFAULT_HEADERS);
+    }
+
+    /**
+     * 发起 GET 请求,支持自定义请求头
+     *
+     * @param url     请求 URL
+     * @param headers 请求头
+     * @return 响应内容(JSON 字符串, 包含 status, body)
+     */
+    public String get(String url, Map<String, String> headers) {
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(Duration.ofSeconds(30))
                     .GET();
+
+            headers.forEach(builder::header);
 
             HttpRequest request = builder.build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -68,7 +81,7 @@ public final class HttpClients {
      * @param url     请求 URL
      * @param body    请求体
      * @param headers 请求头
-     * @return 响应内容(JSON 字符串, 包含 status, headers, body)
+     * @return 响应内容(JSON 字符串, 包含 status, body)
      */
     public String post(String url, String body, Map<String, String> headers) {
         try {
@@ -107,7 +120,7 @@ public final class HttpClients {
      * @param url     请求 URL
      * @param body    请求体
      * @param headers 请求头
-     * @return 响应内容(JSON 字符串, 包含 status, headers, body)
+     * @return 响应内容(JSON 字符串, 包含 status, body)
      */
     public String put(String url, String body, Map<String, String> headers) {
         try {
@@ -144,7 +157,7 @@ public final class HttpClients {
      *
      * @param url     请求 URL
      * @param headers 请求头
-     * @return 响应内容(JSON 字符串, 包含 status, headers, body)
+     * @return 响应内容(JSON 字符串, 包含 status, body)
      */
     public String delete(String url, Map<String, String> headers) {
         try {
@@ -173,18 +186,6 @@ public final class HttpClients {
         JSONObject result = new JSONObject();
         result.set("status", response.statusCode());
         result.set("body", response.body());
-
-        // 添加响应头
-        JSONObject headers = new JSONObject();
-        response.headers().map().forEach((key, values) -> {
-            if (values.size() == 1) {
-                headers.set(key, values.get(0));
-            } else {
-                headers.set(key, values);
-            }
-        });
-        result.set("headers", headers);
-
         return result.toString();
     }
 
