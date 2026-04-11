@@ -1,4 +1,4 @@
-package info.mengnan.aitalk.server.param;
+package info.mengnan.aitalk.server.param.functionCall;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

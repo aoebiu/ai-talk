@@ -1,10 +1,15 @@
 package info.mengnan.aitalk.server.store;
 
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
+import info.mengnan.aitalk.common.json.JSONObject;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
+import info.mengnan.aitalk.repository.entity.ChatMessageExtras;
+import info.mengnan.aitalk.repository.entity.ToolExecutionRequestSnapshot;
 import info.mengnan.aitalk.repository.service.ChatMessageService;
 import info.mengnan.aitalk.server.content.ChatHistoryCompressing;
 import info.mengnan.aitalk.server.content.TokenCounting;
@@ -12,7 +17,10 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.compress.utils.Lists;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static info.mengnan.aitalk.common.param.MessageRole.*;
 import static info.mengnan.aitalk.rag.config.DefaultModelConfig.DEFAULT_SESSION;
@@ -69,21 +77,26 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         if (chatMessage instanceof UserMessage msg) {
             dbMessage.setRole(USER.n());
             dbMessage.setContent(msg.singleText());
+            dbMessage.setExtras(buildUserExtras(msg));
 
         } else if (chatMessage instanceof AiMessage msg) {
             dbMessage.setRole(ASSISTANT.n());
-            dbMessage.setContent(msg.text());
+            String aiText = msg.text();
+            dbMessage.setContent(aiText != null ? aiText : "");
+            dbMessage.setExtras(buildAiExtras(msg));
 
         } else if (chatMessage instanceof SystemMessage msg) {
             dbMessage.setRole(SYSTEM.n());
             dbMessage.setContent(msg.text());
 
+        } else if (chatMessage instanceof ToolExecutionResultMessage msg) {
+            dbMessage.setRole(TOOL.n());
+            dbMessage.setContent(msg.text());
+            dbMessage.setExtras(buildToolExtras(msg));
         }
-        convertToChatMessage(dbMessage);
         chatMessageService.insert(dbMessage);
 
-        List<ChatMessage> chats = chatMessageService.findChatByRole(sessionId,
-                List.of(USER.n(), ASSISTANT.n(), COMPRESS.n()));
+        List<ChatMessage> chats = chatMessageService.findChatByRole(sessionId, List.of(USER.n(), ASSISTANT.n(), COMPRESS.n(), TOOL.n()));
         if (messages.size() > 1) {
             int summary = 0;
             for (ChatMessage chat : chats) {
@@ -96,8 +109,72 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         }
     }
 
-    private void saveCompressedSummary(String sessionId, String summary,
-                                       List<ChatMessage> originalMessages) {
+    private static ChatMessageExtras buildUserExtras(UserMessage msg) {
+        if (msg.name() == null || msg.name().isBlank()) {
+            return null;
+        }
+        ChatMessageExtras ex = new ChatMessageExtras();
+        ex.setUserName(msg.name());
+        return ex;
+    }
+
+    private static ChatMessageExtras buildAiExtras(AiMessage msg) {
+        boolean hasThinking = msg.thinking() != null && !msg.thinking().isBlank();
+        boolean hasTools = msg.hasToolExecutionRequests();
+        Map<String, Object> attrs = msg.attributes();
+        boolean hasAttrs = attrs != null && !attrs.isEmpty();
+        if (!hasThinking && !hasTools && !hasAttrs) {
+            return null;
+        }
+        ChatMessageExtras ex = new ChatMessageExtras();
+        if (hasThinking) {
+            ex.setThinking(msg.thinking());
+        }
+        if (hasTools) {
+            List<ToolExecutionRequestSnapshot> snapshots = new ArrayList<>();
+            for (ToolExecutionRequest r : msg.toolExecutionRequests()) {
+                ToolExecutionRequestSnapshot s = new ToolExecutionRequestSnapshot();
+                s.setId(r.id());
+                s.setName(r.name());
+                s.setArguments(r.arguments());
+                snapshots.add(s);
+            }
+            ex.setToolExecutionRequests(snapshots);
+        }
+        if (hasAttrs) {
+            ex.setAttributes(new HashMap<>(attrs));
+        }
+        return ex;
+    }
+
+    private static ChatMessageExtras buildToolExtras(ToolExecutionResultMessage msg) {
+        boolean hasId = msg.id() != null && !msg.id().isBlank();
+        boolean hasName = msg.toolName() != null && !msg.toolName().isBlank();
+        if (!hasId && !hasName) {
+            return null;
+        }
+        ChatMessageExtras ex = new ChatMessageExtras();
+        if (hasId) {
+            ex.setToolCallId(msg.id());
+        }
+        if (hasName) {
+            ex.setToolName(msg.toolName());
+        }
+        return ex;
+    }
+
+    private ChatMessageExtras readExtras(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return new JSONObject(json).toBean(ChatMessageExtras.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void saveCompressedSummary(String sessionId, String summary, List<ChatMessage> originalMessages) {
         ChatMessage lastMsg = originalMessages.get(originalMessages.size() - 1);
 
         // 创建压缩摘要消息
@@ -106,8 +183,7 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         summaryMessage.setRole(COMPRESS.n());
 
         // 在摘要前添加说明
-        String summaryWithMeta = String.format("[历史对话摘要 - 压缩了 %d 条消息]\n%s",
-                originalMessages.size(), summary);
+        String summaryWithMeta = String.format("[历史对话摘要 - 压缩了 %d 条消息]\n%s", originalMessages.size(), summary);
         summaryMessage.setContent(summaryWithMeta);
 
         summaryMessage.setCreatedAt(lastMsg.getCreatedAt()); // 使用最后一条消息的时间保持顺序
@@ -125,21 +201,61 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
      */
     private dev.langchain4j.data.message.ChatMessage convertToChatMessage(ChatMessage dbMessage) {
         dev.langchain4j.data.message.ChatMessage chatMessage;
+        String content = dbMessage.getContent() != null ? dbMessage.getContent() : "";
+        ChatMessageExtras ex = dbMessage.getExtras();
+
         if (USER.equals(dbMessage.getRole())) {
-            chatMessage = UserMessage.from(dbMessage.getContent());
+            if (ex != null && ex.getUserName() != null && !ex.getUserName().isBlank()) {
+                chatMessage = UserMessage.from(ex.getUserName(), content);
+            } else {
+                chatMessage = UserMessage.from(content);
+            }
 
         } else if (ASSISTANT.equals(dbMessage.getRole())) {
-            chatMessage = AiMessage.from(dbMessage.getContent());
+            if (ex == null || !hasAiExtras(ex)) {
+                chatMessage = AiMessage.from(content);
+            } else {
+                AiMessage.Builder b = AiMessage.builder().text(content);
+                if (ex.getThinking() != null && !ex.getThinking().isBlank()) {
+                    b.thinking(ex.getThinking());
+                }
+                if (ex.getToolExecutionRequests() != null && !ex.getToolExecutionRequests().isEmpty()) {
+                    List<ToolExecutionRequest> reqs = new ArrayList<>();
+                    for (ToolExecutionRequestSnapshot s : ex.getToolExecutionRequests()) {
+                        reqs.add(ToolExecutionRequest.builder()
+                                .id(s.getId() != null ? s.getId() : "")
+                                .name(s.getName() != null ? s.getName() : "")
+                                .arguments(s.getArguments() != null ? s.getArguments() : "")
+                                .build());
+                    }
+                    b.toolExecutionRequests(reqs);
+                }
+                if (ex.getAttributes() != null && !ex.getAttributes().isEmpty()) {
+                    b.attributes(new HashMap<>(ex.getAttributes()));
+                }
+                chatMessage = b.build();
+            }
 
         } else if (SYSTEM.equals(dbMessage.getRole())) {
-            chatMessage = SystemMessage.from(dbMessage.getContent());
+            chatMessage = SystemMessage.from(content);
 
         } else if (COMPRESS.equals(dbMessage.getRole())) {
-            chatMessage = UserMessage.from(dbMessage.getContent());
+            chatMessage = UserMessage.from(content);
 
+        } else if (TOOL.equals(dbMessage.getRole())) {
+            String toolId = ex != null && ex.getToolCallId() != null ? ex.getToolCallId() : "";
+            String toolName = ex != null && ex.getToolName() != null ? ex.getToolName() : "";
+            chatMessage = ToolExecutionResultMessage.from(toolId, toolName, content);
         } else {
             throw new IllegalArgumentException("不支持的消息类型：" + dbMessage.getRole());
         }
         return chatMessage;
     }
+
+    private static boolean hasAiExtras(ChatMessageExtras ex) {
+        return (ex.getThinking() != null && !ex.getThinking().isBlank())
+                || (ex.getToolExecutionRequests() != null && !ex.getToolExecutionRequests().isEmpty())
+                || (ex.getAttributes() != null && !ex.getAttributes().isEmpty());
+    }
+
 }

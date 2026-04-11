@@ -17,6 +17,11 @@ public class ChatOption {
     private Long id;
 
     /**
+     * 指定用户配置
+     */
+    private Long memberId;
+
+    /**
      * 配置名称
      */
     private String name;

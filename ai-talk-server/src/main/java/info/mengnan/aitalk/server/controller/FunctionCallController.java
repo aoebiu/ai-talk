@@ -4,8 +4,8 @@ import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.rag.service.DirectModelInvoker;
 import info.mengnan.aitalk.repository.entity.ChatToolDescription;
 import info.mengnan.aitalk.repository.service.ToolDescriptionService;
-import info.mengnan.aitalk.server.param.FunctionCallRequest;
-import info.mengnan.aitalk.server.param.FunctionCallScriptGenerateRequest;
+import info.mengnan.aitalk.server.param.functionCall.FunctionCallRequest;
+import info.mengnan.aitalk.server.param.functionCall.FunctionCallScriptGenerateRequest;
 import info.mengnan.aitalk.server.param.R;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -80,9 +80,8 @@ public class FunctionCallController {
     /**
      * 根据工具描述、参数 Schema 与本次入参，由默认对话模型仅生成 execute 脚本正文
      */
-    @PostMapping("/generate-script")
+    @PostMapping("/generate/script")
     public R generateScript(@Validated @RequestBody FunctionCallScriptGenerateRequest request) {
-        StpUtil.getLoginIdAsLong();
         Map<String, Object> variables = Map.of(
                 "name", request.getName(),
                 "description", request.getDescription(),

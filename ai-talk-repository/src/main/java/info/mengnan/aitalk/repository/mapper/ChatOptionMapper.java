@@ -35,4 +35,10 @@ public interface ChatOptionMapper extends BaseMapper<ChatOption> {
                 .eq(ChatOption::getName, name);
         return selectOne(qw);
     }
+
+    default List<ChatOption> findByMemberId(Long memberId) {
+        LambdaQueryWrapper<ChatOption> qw = new LambdaQueryWrapper<ChatOption>()
+                .eq(ChatOption::getMemberId, memberId);
+        return selectList(qw);
+    }
 }

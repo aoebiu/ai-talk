@@ -46,6 +46,7 @@ CREATE TABLE `chat_messages`
     `session_id` varchar(255)                                                   NOT NULL COMMENT '会话ID',
     `role`       varchar(50)                                                    NOT NULL COMMENT '角色: USER, ASSISTANT, SYSTEM',
     `content`    varchar(2550) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '消息内容',
+    `extras`     json                                                           NULL COMMENT '扩展字段 JSON（thinking、toolCalls、tool 结果 id 等）',
     `created_at` timestamp                                                      NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
     KEY `idx_session_id` (`session_id`),
@@ -220,9 +221,7 @@ CREATE TABLE `chat_project_api_key`
     `deleted`      int(11)           DEFAULT '0' COMMENT '逻辑删除: 0-未删除, 1-已删除',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_api_key` (`api_key`),
-    KEY `idx_member_id` (`member_id`),
-    KEY `idx_status` (`status`),
-    CONSTRAINT `fk_api_key_member` FOREIGN KEY (`member_id`) REFERENCES `members` (`id`) ON DELETE CASCADE
+    KEY `idx_member_id` (`member_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci COMMENT ='OpenAI API Key 表';

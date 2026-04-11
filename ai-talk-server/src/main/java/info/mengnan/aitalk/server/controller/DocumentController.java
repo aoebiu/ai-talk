@@ -2,8 +2,8 @@ package info.mengnan.aitalk.server.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.server.content.DocumentEmbedding;
-import info.mengnan.aitalk.server.param.DocumentUploadResult;
-import info.mengnan.aitalk.server.param.DocumentUploadResponse;
+import info.mengnan.aitalk.server.param.document.DocumentUploadResult;
+import info.mengnan.aitalk.server.param.document.DocumentUploadResponse;
 import info.mengnan.aitalk.server.param.R;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

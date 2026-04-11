@@ -6,7 +6,7 @@ import info.mengnan.aitalk.rag.container.assemble.AssembledModels;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
 import info.mengnan.aitalk.repository.entity.ChatProjectApiKey;
 import info.mengnan.aitalk.repository.service.ProjectApiKeyService;
-import info.mengnan.aitalk.server.param.ChatRequest;
+import info.mengnan.aitalk.server.param.chat.ChatRequest;
 import info.mengnan.aitalk.rag.ChatService;
 import info.mengnan.aitalk.server.handler.OpenAiStreamingResponseHandler;
 import info.mengnan.aitalk.server.param.openai.OpenApiChatRequest;

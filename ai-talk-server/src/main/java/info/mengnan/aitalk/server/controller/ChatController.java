@@ -10,7 +10,7 @@ import info.mengnan.aitalk.repository.entity.ChatMessage;
 import info.mengnan.aitalk.repository.entity.ChatSession;
 import info.mengnan.aitalk.repository.service.ChatMessageService;
 import info.mengnan.aitalk.repository.service.ChatSessionService;
-import info.mengnan.aitalk.server.param.ChatRequest;
+import info.mengnan.aitalk.server.param.chat.ChatRequest;
 import info.mengnan.aitalk.server.param.R;
 import info.mengnan.aitalk.rag.ChatService;
 import info.mengnan.aitalk.server.handler.FluxStreamingResponseHandler;

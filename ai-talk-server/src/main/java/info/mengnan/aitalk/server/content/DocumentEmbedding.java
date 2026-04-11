@@ -20,7 +20,7 @@ import info.mengnan.aitalk.kb.param.DocumentImage;
 import info.mengnan.aitalk.kb.core.DocumentImageExtractor;
 import info.mengnan.aitalk.kb.param.EnhancedTextSegment;
 import info.mengnan.aitalk.kb.core.SequentialDocumentExtractor;
-import info.mengnan.aitalk.server.param.DocumentUploadResult;
+import info.mengnan.aitalk.server.param.document.DocumentUploadResult;
 import info.mengnan.aitalk.server.service.ModelConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

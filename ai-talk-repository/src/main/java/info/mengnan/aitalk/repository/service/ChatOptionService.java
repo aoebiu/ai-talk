@@ -33,6 +33,10 @@ public class ChatOptionService {
         return mapper.selectList(null);
     }
 
+    public List<ChatOption> findByMemberId(Long memberId) {
+        return mapper.findByMemberId(memberId);
+    }
+
     public void insert(ChatOption entity) {
         mapper.insert(entity);
     }

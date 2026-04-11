@@ -21,6 +21,9 @@ public class ChatMessage {
 
     private String content;
 
+    /** 扩展字段 JSON，结构见 {@link ChatMessageExtras} */
+    private ChatMessageExtras extras;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 }

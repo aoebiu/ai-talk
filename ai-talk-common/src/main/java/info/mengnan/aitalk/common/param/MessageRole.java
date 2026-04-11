@@ -11,6 +11,7 @@ public enum MessageRole {
     ASSISTANT, // 模型提示词
     COMPRESS,  // 压缩提示词
     SYSTEM,    // 系统提示词
+    TOOL      // 工具执行结果
     ;
 
     public boolean equals(String role) {
