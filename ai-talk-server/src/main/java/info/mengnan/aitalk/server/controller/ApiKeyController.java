@@ -4,7 +4,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.repository.entity.ChatProjectApiKey;
 import info.mengnan.aitalk.repository.service.ProjectApiKeyService;
 import info.mengnan.aitalk.server.param.R;
-import info.mengnan.aitalk.server.vo.ProjectApiKeyVO;
+import info.mengnan.aitalk.server.param.apiKey.ProjectApiKeyResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
@@ -34,16 +34,16 @@ public class ApiKeyController {
     public R listApiKeys() {
         Long memberId = StpUtil.getLoginIdAsLong();
         List<ChatProjectApiKey> keys = projectApiKeyService.listByMemberId(memberId);
-        List<ProjectApiKeyVO> list = keys.stream().map(k -> {
-            ProjectApiKeyVO vo = new ProjectApiKeyVO();
-            vo.setId(k.getId());
-            vo.setName(k.getName());
-            vo.setStatus(k.getStatus());
-            vo.setExpiresAt(k.getExpiresAt());
-            vo.setLastUsedAt(k.getLastUsedAt());
-            vo.setCreatedAt(k.getCreatedAt());
-            vo.setApiKey(maskKey(k.getApiKey()));
-            return vo;
+        List<ProjectApiKeyResponse> list = keys.stream().map(k -> {
+            ProjectApiKeyResponse response = new ProjectApiKeyResponse();
+            response.setId(k.getId());
+            response.setName(k.getName());
+            response.setStatus(k.getStatus());
+            response.setExpiresAt(k.getExpiresAt());
+            response.setLastUsedAt(k.getLastUsedAt());
+            response.setCreatedAt(k.getCreatedAt());
+            response.setApiKey(maskKey(k.getApiKey()));
+            return response;
         }).toList();
         return R.ok(list);
     }
@@ -79,12 +79,12 @@ public class ApiKeyController {
         projectApiKeyService.insert(entity);
         log.info("User {} created API Key: {}", memberId, entity.getId());
 
-        ProjectApiKeyVO vo = new ProjectApiKeyVO();
-        vo.setId(entity.getId());
-        vo.setApiKey(apiKey);
-        vo.setName(entity.getName());
-        vo.setExpiresAt(entity.getExpiresAt());
-        return R.ok(vo);
+        ProjectApiKeyResponse response = new ProjectApiKeyResponse();
+        response.setId(entity.getId());
+        response.setApiKey(apiKey);
+        response.setName(entity.getName());
+        response.setExpiresAt(entity.getExpiresAt());
+        return R.ok(response);
     }
 
     /**

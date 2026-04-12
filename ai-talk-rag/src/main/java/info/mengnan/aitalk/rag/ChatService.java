@@ -31,6 +31,7 @@ import info.mengnan.aitalk.rag.container.assemble.AssembledModels;
 import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
 import info.mengnan.aitalk.rag.service.ModelConfigProvider;
 import lombok.extern.slf4j.Slf4j;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

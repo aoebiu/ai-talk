@@ -4,7 +4,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.repository.entity.ChatApiKey;
 import info.mengnan.aitalk.repository.service.ChatApiKeyService;
 import info.mengnan.aitalk.server.param.R;
-import info.mengnan.aitalk.server.vo.ModelApiKeyVO;
+import info.mengnan.aitalk.server.param.apiKey.ModelApiKeyResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -31,15 +31,15 @@ public class ModelApiKeyController {
     public R listModels() {
         Long memberId = StpUtil.getLoginIdAsLong();
         List<ChatApiKey> keys = chatApiKeyService.findAll(memberId);
-        List<ModelApiKeyVO> list = keys.stream().map(k -> {
-            ModelApiKeyVO vo = new ModelApiKeyVO();
-            vo.setId(k.getId());
-            vo.setModelName(k.getModelName());
-            vo.setModelProvider(k.getModelProvider());
-            vo.setKeyType(k.getKeyType());
-            vo.setMaskedApiKey(maskApiKey(k.getApiKey()));
-            vo.setCreatedAt(k.getCreatedAt());
-            return vo;
+        List<ModelApiKeyResponse> list = keys.stream().map(k -> {
+            ModelApiKeyResponse response = new ModelApiKeyResponse();
+            response.setId(k.getId());
+            response.setModelName(k.getModelName());
+            response.setModelProvider(k.getModelProvider());
+            response.setKeyType(k.getKeyType());
+            response.setMaskedApiKey(maskApiKey(k.getApiKey()));
+            response.setCreatedAt(k.getCreatedAt());
+            return response;
         }).toList();
         return R.ok(list);
     }
@@ -65,13 +65,13 @@ public class ModelApiKeyController {
         chatApiKeyService.insert(entity);
         log.info("User {} created Model API Key: {} for model {}", memberId, entity.getId(), modelName);
 
-        ModelApiKeyVO vo = new ModelApiKeyVO();
-        vo.setId(entity.getId());
-        vo.setModelName(entity.getModelName());
-        vo.setModelProvider(entity.getModelProvider());
-        vo.setKeyType(entity.getKeyType());
-        vo.setCreatedAt(entity.getCreatedAt());
-        return R.ok(vo);
+        ModelApiKeyResponse response = new ModelApiKeyResponse();
+        response.setId(entity.getId());
+        response.setModelName(entity.getModelName());
+        response.setModelProvider(entity.getModelProvider());
+        response.setKeyType(entity.getKeyType());
+        response.setCreatedAt(entity.getCreatedAt());
+        return R.ok(response);
     }
 
     /**

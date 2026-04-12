@@ -35,10 +35,9 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- ChatMessageExtras.extras JSON 序列化注解（与 JSONUtil / JSONObject 一致） -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
     </dependencies>
 

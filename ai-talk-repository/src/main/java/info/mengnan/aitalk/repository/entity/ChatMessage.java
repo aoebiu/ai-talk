@@ -5,11 +5,12 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("chat_messages")
+@TableName(value = "chat_messages", autoResultMap = true)
 public class ChatMessage {
 
     @TableId(type = IdType.AUTO)
@@ -21,7 +22,7 @@ public class ChatMessage {
 
     private String content;
 
-    /** 扩展字段 JSON，结构见 {@link ChatMessageExtras} */
+    @TableField(value = "extras", typeHandler = JacksonTypeHandler.class)
     private ChatMessageExtras extras;
 
     @TableField(fill = FieldFill.INSERT)

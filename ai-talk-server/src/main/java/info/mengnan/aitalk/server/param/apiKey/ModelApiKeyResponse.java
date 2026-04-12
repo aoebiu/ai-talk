@@ -1,4 +1,4 @@
-package info.mengnan.aitalk.server.vo;
+package info.mengnan.aitalk.server.param.apiKey;
 
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
  * 模型 API Key 视图对象
  */
 @Data
-public class ModelApiKeyVO {
+public class ModelApiKeyResponse {
 
     private Long id;
 

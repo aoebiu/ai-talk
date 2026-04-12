@@ -6,10 +6,8 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
-import info.mengnan.aitalk.common.json.JSONObject;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
 import info.mengnan.aitalk.repository.entity.ChatMessageExtras;
-import info.mengnan.aitalk.repository.entity.ToolExecutionRequestSnapshot;
 import info.mengnan.aitalk.repository.service.ChatMessageService;
 import info.mengnan.aitalk.server.content.ChatHistoryCompressing;
 import info.mengnan.aitalk.server.content.TokenCounting;
@@ -21,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import static info.mengnan.aitalk.common.param.MessageRole.*;
 import static info.mengnan.aitalk.rag.config.DefaultModelConfig.DEFAULT_SESSION;
 
@@ -53,9 +50,9 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
             ChatMessage dbMessage = dbMessages.get(i);
             String role = dbMessage.getRole();
 
-            // 如果存在compress消息，过滤掉compress之前的user和assistant消息
+            // 如果存在 compress：跳过其之前的 user / assistant / tool
             if (lastCompressIndex != -1 && i < lastCompressIndex) {
-                if (USER.equals(role) || ASSISTANT.equals(role)) {
+                if (USER.equals(role) || ASSISTANT.equals(role) || TOOL.equals(role)) {
                     continue;
                 }
             }
@@ -119,21 +116,19 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
     }
 
     private static ChatMessageExtras buildAiExtras(AiMessage msg) {
-        boolean hasThinking = msg.thinking() != null && !msg.thinking().isBlank();
-        boolean hasTools = msg.hasToolExecutionRequests();
         Map<String, Object> attrs = msg.attributes();
         boolean hasAttrs = attrs != null && !attrs.isEmpty();
-        if (!hasThinking && !hasTools && !hasAttrs) {
-            return null;
-        }
+        boolean hasThinking = msg.thinking() != null && !msg.thinking().isBlank();
+        boolean hasTools = msg.hasToolExecutionRequests();
+        if (!hasThinking && !hasTools && !hasAttrs) return null;
+
         ChatMessageExtras ex = new ChatMessageExtras();
-        if (hasThinking) {
-            ex.setThinking(msg.thinking());
-        }
+        if (hasThinking) ex.setThinking(msg.thinking());
+
         if (hasTools) {
-            List<ToolExecutionRequestSnapshot> snapshots = new ArrayList<>();
+            List<ChatMessageExtras.ToolExecutionRequestSnapshot> snapshots = new ArrayList<>();
             for (ToolExecutionRequest r : msg.toolExecutionRequests()) {
-                ToolExecutionRequestSnapshot s = new ToolExecutionRequestSnapshot();
+                ChatMessageExtras.ToolExecutionRequestSnapshot s = new ChatMessageExtras.ToolExecutionRequestSnapshot();
                 s.setId(r.id());
                 s.setName(r.name());
                 s.setArguments(r.arguments());
@@ -161,17 +156,6 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
             ex.setToolName(msg.toolName());
         }
         return ex;
-    }
-
-    private ChatMessageExtras readExtras(String json) {
-        if (json == null || json.isBlank()) {
-            return null;
-        }
-        try {
-            return new JSONObject(json).toBean(ChatMessageExtras.class);
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     private void saveCompressedSummary(String sessionId, String summary, List<ChatMessage> originalMessages) {
@@ -220,15 +204,15 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
                     b.thinking(ex.getThinking());
                 }
                 if (ex.getToolExecutionRequests() != null && !ex.getToolExecutionRequests().isEmpty()) {
-                    List<ToolExecutionRequest> reqs = new ArrayList<>();
-                    for (ToolExecutionRequestSnapshot s : ex.getToolExecutionRequests()) {
-                        reqs.add(ToolExecutionRequest.builder()
+                    List<ToolExecutionRequest> results = new ArrayList<>();
+                    for (ChatMessageExtras.ToolExecutionRequestSnapshot s : ex.getToolExecutionRequests()) {
+                        results.add(ToolExecutionRequest.builder()
                                 .id(s.getId() != null ? s.getId() : "")
                                 .name(s.getName() != null ? s.getName() : "")
                                 .arguments(s.getArguments() != null ? s.getArguments() : "")
                                 .build());
                     }
-                    b.toolExecutionRequests(reqs);
+                    b.toolExecutionRequests(results);
                 }
                 if (ex.getAttributes() != null && !ex.getAttributes().isEmpty()) {
                     b.attributes(new HashMap<>(ex.getAttributes()));
