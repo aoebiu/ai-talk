@@ -1,7 +1,7 @@
 package info.mengnan.aitalk.server.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
-import info.mengnan.aitalk.server.content.DocumentEmbedding;
+import info.mengnan.aitalk.server.core.DocumentEmbedding;
 import info.mengnan.aitalk.server.param.document.DocumentUploadResult;
 import info.mengnan.aitalk.server.param.document.DocumentUploadResponse;
 import info.mengnan.aitalk.server.param.R;

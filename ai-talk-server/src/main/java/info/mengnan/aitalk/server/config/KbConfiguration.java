@@ -3,7 +3,7 @@ package info.mengnan.aitalk.server.config;
 import info.mengnan.aitalk.kb.core.DynamicEmbeddingStoreRegistry;
 import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
 import info.mengnan.aitalk.rag.service.DirectModelInvoker;
-import info.mengnan.aitalk.server.content.DocumentEmbedding;
+import info.mengnan.aitalk.server.core.DocumentEmbedding;
 import info.mengnan.aitalk.server.service.ModelConfigService;
 import info.mengnan.aitalk.kb.core.DocumentImageExtractor;
 import info.mengnan.aitalk.kb.core.ImageTextGenerator;

@@ -25,7 +25,9 @@ public class PromptTemplateManager {
             "compression", PromptTemplateConstant.COMPRESSION_PROMPT_TEMPLATE,
             "content_injector", PromptTemplateConstant.CONTENT_INJECTOR_PROMPT_TEMPLATE,
             "identify_picture", PromptTemplateConstant.IDENTIFY_PICTURE_PROMPT_TEMPLATE,
-            "tool_execute_script_generation", PromptTemplateConstant.TOOL_EXECUTE_SCRIPT_GENERATION_PROMPT_TEMPLATE
+            "tool_metadata_generation", PromptTemplateConstant.TOOL_METADATA_GENERATION_PROMPT_TEMPLATE,
+            "tool_capability_analysis", PromptTemplateConstant.TOOL_CAPABILITY_ANALYSIS_PROMPT_TEMPLATE,
+            "tool_case_generation", PromptTemplateConstant.TOOL_CASE_GENERATION
     );
 
     /**

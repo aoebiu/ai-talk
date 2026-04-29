@@ -31,11 +31,7 @@ public interface ToolDescriptionMapper extends BaseMapper<ChatToolDescription> {
         return selectOne(qw);
     }
 
-    default List<ChatToolDescription> findAll() {
-        return selectList(null);
-    }
-
-    default List<ChatToolDescription> findAllByMemberId(Long memberId) {
+    default List<ChatToolDescription> findByMemberId(Long memberId) {
         LambdaQueryWrapper<ChatToolDescription> qw = new LambdaQueryWrapper<ChatToolDescription>()
                 .eq(ChatToolDescription::getMemberId, memberId);
         return selectList(qw);

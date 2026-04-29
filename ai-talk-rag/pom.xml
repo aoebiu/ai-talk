@@ -27,6 +27,11 @@
 
         <dependency>
             <groupId>info.mengnan</groupId>
+            <artifactId>ai-talk-tool</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>info.mengnan</groupId>
             <artifactId>ai-talk-kb</artifactId>
         </dependency>
 

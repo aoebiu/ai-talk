@@ -3,7 +3,7 @@ package info.mengnan.aitalk.server.service;
 import info.mengnan.aitalk.common.param.ModelType;
 import info.mengnan.aitalk.rag.config.ModelConfig;
 import info.mengnan.aitalk.repository.entity.ChatApiKey;
-import info.mengnan.aitalk.repository.service.ChatApiKeyService;
+import info.mengnan.aitalk.repository.repo.ChatApiKeyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ModelConfigService {
 
-    private final ChatApiKeyService chatApiKeyService;
+    private final ChatApiKeyRepository chatApiKeyService;
 
     /**
      * 根据模型名称和类型从数据库查询模型配置

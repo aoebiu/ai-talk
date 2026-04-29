@@ -8,9 +8,9 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
 import info.mengnan.aitalk.repository.entity.ChatMessageExtras;
-import info.mengnan.aitalk.repository.service.ChatMessageService;
-import info.mengnan.aitalk.server.content.ChatHistoryCompressing;
-import info.mengnan.aitalk.server.content.TokenCounting;
+import info.mengnan.aitalk.repository.repo.ChatMessageRepository;
+import info.mengnan.aitalk.server.core.ChatHistoryCompressing;
+import info.mengnan.aitalk.server.core.TokenCounting;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.compress.utils.Lists;
 import org.springframework.stereotype.Component;
@@ -26,7 +26,7 @@ import static info.mengnan.aitalk.rag.config.DefaultModelConfig.DEFAULT_SESSION;
 @RequiredArgsConstructor
 public class PersistentChatMemoryStore implements ChatMemoryStore {
 
-    private final ChatMessageService chatMessageService;
+    private final ChatMessageRepository chatMessageService;
     private final ChatHistoryCompressing compressing;
     private final TokenCounting tokenCounting;
 

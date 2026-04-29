@@ -102,10 +102,15 @@ public class RagConfiguration {
     }
 
     @Bean
+    public PromptTemplateManager promptTemplateManager() {
+        return new PromptTemplateManager();
+    }
+
+    @Bean
     public DirectModelInvoker DirectModelInvoker(ModelRegistry modelRegistry,
                                                  ModelConfigService modelConfigService,
-                                                 DefaultModelConfig modelConfig) {
-        PromptTemplateManager promptTemplateManager = new PromptTemplateManager();
+                                                 DefaultModelConfig modelConfig,
+                                                 PromptTemplateManager promptTemplateManager) {
         return new DirectModelInvoker(modelRegistry, modelConfigService::findModel,
                 promptTemplateManager, modelConfig);
     }

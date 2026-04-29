@@ -1,7 +1,7 @@
 package info.mengnan.aitalk.server.interceptor;
 
 import info.mengnan.aitalk.repository.entity.ChatProjectApiKey;
-import info.mengnan.aitalk.repository.service.ProjectApiKeyService;
+import info.mengnan.aitalk.repository.repo.ProjectApiKeyRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @RequiredArgsConstructor
 public class OpenAiApiKeyInterceptor implements HandlerInterceptor {
 
-    private final ProjectApiKeyService projectApiKeyService;
+    private final ProjectApiKeyRepository projectApiKeyService;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {

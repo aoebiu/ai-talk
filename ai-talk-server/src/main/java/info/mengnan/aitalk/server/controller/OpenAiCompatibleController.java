@@ -5,7 +5,7 @@ import dev.langchain4j.service.tool.ToolExecutor;
 import info.mengnan.aitalk.rag.container.assemble.AssembledModels;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
 import info.mengnan.aitalk.repository.entity.ChatProjectApiKey;
-import info.mengnan.aitalk.repository.service.ProjectApiKeyService;
+import info.mengnan.aitalk.repository.repo.ProjectApiKeyRepository;
 import info.mengnan.aitalk.server.param.chat.ChatRequest;
 import info.mengnan.aitalk.rag.ChatService;
 import info.mengnan.aitalk.server.handler.OpenAiStreamingResponseHandler;
@@ -39,7 +39,7 @@ public class OpenAiCompatibleController {
     private final ChatService chatService;
     private final RagAdapterService ragAdapterService;
     private final ToolAdapterService toolAdapterService;
-    private final ProjectApiKeyService projectApiKeyService;
+    private final ProjectApiKeyRepository projectApiKeyService;
     private final ImageProcessingService imageProcessingService;
 
     /**
@@ -87,7 +87,7 @@ public class OpenAiCompatibleController {
                     try {
                         // 从数据库查询并组装 AssembledModels
                         AssembledModels assembledModels = ragAdapterService.assembleModels(chatRequest.getOptionId());
-                        Map<ToolSpecification, ToolExecutor> toolMap = toolAdapterService.dynamicTools();
+                        Map<ToolSpecification, ToolExecutor> toolMap = toolAdapterService.dynamicTools(chatRequest.getMemberId());
 
                         StreamingResponseHandler handler = new OpenAiStreamingResponseHandler(
                                 sink, requestId, timestamp, model);

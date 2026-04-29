@@ -2,7 +2,7 @@ package info.mengnan.aitalk.server.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.repository.entity.ChatProjectApiKey;
-import info.mengnan.aitalk.repository.service.ProjectApiKeyService;
+import info.mengnan.aitalk.repository.repo.ProjectApiKeyRepository;
 import info.mengnan.aitalk.server.param.R;
 import info.mengnan.aitalk.server.param.apiKey.ProjectApiKeyResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ApiKeyController {
 
-    private final ProjectApiKeyService projectApiKeyService;
+    private final ProjectApiKeyRepository projectApiKeyService;
 
     /**
      * 获取当前用户的 API Key 列表（列表中 key 脱敏显示）

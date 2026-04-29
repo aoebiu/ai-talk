@@ -45,6 +45,8 @@ public class ChatToolDescription {
      */
     private String execute;
 
+    private String generatePrompt;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 

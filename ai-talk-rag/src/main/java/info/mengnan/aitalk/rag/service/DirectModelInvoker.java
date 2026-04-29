@@ -12,7 +12,6 @@ import info.mengnan.aitalk.rag.config.DefaultModelConfig;
 import info.mengnan.aitalk.rag.config.ModelConfig;
 import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
 import info.mengnan.aitalk.rag.container.factory.ModelTypeMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Base64;
@@ -24,7 +23,6 @@ import java.util.function.Supplier;
  * 直接模型调用器
  */
 @Slf4j
-@RequiredArgsConstructor
 public class DirectModelInvoker {
 
     private final ModelRegistry modelRegistry;
@@ -37,25 +35,59 @@ public class DirectModelInvoker {
     private static final long BACKOFF_DELAY_MS = 1000L;
     private static final double BACKOFF_MULTIPLIER = 2.0;
 
-    public String directInvoke(String templateName, Map<String, Object> variables) {
+    public DirectModelInvoker(ModelRegistry modelRegistry,
+                              ModelConfigProvider modelConfigProvider,
+                              PromptTemplateManager promptTemplateManager,
+                              DefaultModelConfig defaultModelConfig) {
+        this.modelRegistry = modelRegistry;
+        this.modelConfigProvider = modelConfigProvider;
+        this.promptTemplateManager = promptTemplateManager;
+        this.defaultModelConfig = defaultModelConfig;
+    }
+
+    /**
+     * @param invokeSource 业务来源标识，便于排查；为 null 时使用 {@code template:模板名}
+     */
+    public String directInvoke(String invokeSource, String templateName, Map<String, Object> variables) {
         if (templateName == null) {
             log.error("No template name provided");
             throw new IllegalArgumentException("No template name provided");
         }
-        ModelConfig modelConfig = modelConfigProvider.findModel(null, defaultModelConfig.getModelName(), ModelType.CHAT);
-        if (modelConfig == null) {
-            throw new IllegalArgumentException("No default model configuration found");
-        }
-
-        ChatModel chatModel = getModel(modelConfig, ChatModel.class);
         Prompt prompt = promptTemplateManager.createPrompt(templateName, variables);
-
-        return executeWithRetry(() -> {
-            String response = chatModel.chat(prompt.text());
-            return UserMessage.from(response).singleText();
-        }, MAX_ATTEMPTS, BACKOFF_DELAY_MS, BACKOFF_MULTIPLIER);
+        String source = (invokeSource != null && !invokeSource.isBlank())
+                ? invokeSource
+                : ("template:" + templateName);
+        return directInvokeInternal(source, templateName, prompt.text());
     }
 
+    /**
+     * @param invokeSource 业务来源标识，便于排查
+     */
+    public String directInvokeRaw(String invokeSource, String promptText) {
+        String source = (invokeSource != null && !invokeSource.isBlank()) ? invokeSource : "unknown";
+        return directInvokeInternal(source, null, promptText);
+    }
+
+    private String directInvokeInternal(String invokeSource, String templateName, String promptText) {
+        ModelConfig modelConfig = null;
+        try {
+            modelConfig = modelConfigProvider.findModel(null, defaultModelConfig.getModelName(), ModelType.CHAT);
+            if (modelConfig == null) {
+                throw new IllegalArgumentException("No default model configuration found");
+            }
+
+            ChatModel chatModel = getModel(modelConfig, ChatModel.class);
+
+            String response = executeWithRetry(() -> {
+                String raw = chatModel.chat(promptText);
+                return UserMessage.from(raw).singleText();
+            }, MAX_ATTEMPTS, BACKOFF_DELAY_MS, BACKOFF_MULTIPLIER);
+
+            return response;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     /**
      * 使用图像模型分析图片并生成描述

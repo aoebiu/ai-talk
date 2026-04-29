@@ -8,8 +8,8 @@ import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
 import info.mengnan.aitalk.rag.service.DirectModelInvoker;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
 import info.mengnan.aitalk.repository.entity.ChatSession;
-import info.mengnan.aitalk.repository.service.ChatMessageService;
-import info.mengnan.aitalk.repository.service.ChatSessionService;
+import info.mengnan.aitalk.repository.repo.ChatMessageRepository;
+import info.mengnan.aitalk.repository.repo.ChatSessionRepository;
 import info.mengnan.aitalk.server.param.chat.ChatRequest;
 import info.mengnan.aitalk.server.param.R;
 import info.mengnan.aitalk.rag.ChatService;
@@ -38,8 +38,8 @@ import static info.mengnan.aitalk.common.param.MessageRole.*;
 public class ChatController {
 
     private final ChatService chatService;
-    private final ChatSessionService chatSessionService;
-    private final ChatMessageService chatMessageService;
+    private final ChatSessionRepository chatSessionService;
+    private final ChatMessageRepository chatMessageService;
     private final RagAdapterService ragAdapterService;
     private final ToolAdapterService toolAdapterService;
     private final DirectModelInvoker directModelInvoker;
@@ -99,7 +99,8 @@ public class ChatController {
                     .toList();
             if (list.size() >= 2) {
                 Map<String, Object> params = Map.of("query", list);
-                String title = directModelInvoker.directInvoke("title_generation", params);
+                String title = directModelInvoker.directInvoke("ChatController.conversations",
+                        "title_generation", params);
                 chatConversations.setTitle(title);
                 chatSessionService.updateChatTitle(sessionId, title);
             }
@@ -113,11 +114,12 @@ public class ChatController {
      * 使用回调接口将 ChatService 的响应转换为 Flux
      */
     private Flux<String> streamResponse(ChatRequest chatRequest) {
+        Long memberId = StpUtil.getLoginIdAsLong();
         return Flux.create(sink -> {
             try {
                 // 组装 AssembledModels
                 AssembledModels assembledModels = ragAdapterService.assembleModels(chatRequest.getOptionId());
-                Map<ToolSpecification, ToolExecutor> toolMap = toolAdapterService.dynamicTools();
+                Map<ToolSpecification, ToolExecutor> toolMap = toolAdapterService.dynamicTools(memberId);
                 // 创建回调处理器
                 StreamingResponseHandler handler = new FluxStreamingResponseHandler(sink, chatRequest.getSessionId());
 

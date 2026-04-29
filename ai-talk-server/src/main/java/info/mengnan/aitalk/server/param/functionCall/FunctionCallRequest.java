@@ -35,4 +35,9 @@ public class FunctionCallRequest {
      * 执行脚本或命令
      */
     private String execute;
+
+    /**
+     * 生成该工具时使用的提示词
+     */
+    private String generatePrompt;
 }

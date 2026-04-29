@@ -2,7 +2,7 @@ package info.mengnan.aitalk.server.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.repository.entity.ChatApiKey;
-import info.mengnan.aitalk.repository.service.ChatApiKeyService;
+import info.mengnan.aitalk.repository.repo.ChatApiKeyRepository;
 import info.mengnan.aitalk.server.param.R;
 import info.mengnan.aitalk.server.param.apiKey.ModelApiKeyResponse;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ModelApiKeyController {
 
-    private final ChatApiKeyService chatApiKeyService;
+    private final ChatApiKeyRepository chatApiKeyService;
 
     /**
      * 获取当前用户的模型列表

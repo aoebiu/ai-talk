@@ -7,12 +7,23 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.Base64;
 import java.util.Map;
 
 /**
  * Java HTTP 客户端
- * 注意此类被 {@link info.mengnan.aitalk.rag.tools.Tools} 构造方法使用到,所以只做增强,不作修改!
+ * 注意此类被 {@link info.mengnan.aitalk.tool.Tools} 构造方法使用到
  * 如果有大的改动新增类HttpClientsV2
  */
 @Slf4j
@@ -178,6 +189,43 @@ public final class HttpClients {
             return buildErrorResponse(e);
         }
     }
+
+        public static void main(String[] args) throws Exception {
+            String kid = "CCWHADCHDG";           // 凭据ID
+            String sub = "4M2BEUDR59";           // 项目ID
+
+            // 1. 解析私钥
+            String privateKeyContent = "MC4CAQAwBQYDK2VwBCIEINUt21up/rEx778CWXoV4WJRwvM24QOPUohULiijapKm";
+            byte[] privateKeyBytes = Base64.getDecoder().decode(privateKeyContent);
+            KeyFactory keyFactory = KeyFactory.getInstance("EdDSA");
+            PrivateKey privateKey = keyFactory.generatePrivate(
+                    new java.security.spec.PKCS8EncodedKeySpec(privateKeyBytes)
+            );
+
+            String headerJson = String.format("{\"alg\": \"EdDSA\", \"kid\": \"%s\"}", kid);
+
+            long now = Instant.now().getEpochSecond();
+            long iat = now - 30;   // 当前时间前30秒
+            long exp = now + 900;  // 15分钟后过期
+            String payloadJson = String.format("{\"sub\": \"%s\", \"iat\": %d, \"exp\": %d}", sub, iat, exp);
+
+            String headerEncoded = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(headerJson.getBytes());
+            String payloadEncoded = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(payloadJson.getBytes());
+            String data = headerEncoded + "." + payloadEncoded;
+
+            Signature signer = Signature.getInstance("EdDSA");
+            signer.initSign(privateKey);
+            signer.update(data.getBytes());
+            byte[] signature = signer.sign();
+            String signatureEncoded = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(signature);
+
+            String jwt = data + "." + signatureEncoded;
+            System.out.println(jwt);
+
+        }
 
     /**
      * 构建响应 JSON

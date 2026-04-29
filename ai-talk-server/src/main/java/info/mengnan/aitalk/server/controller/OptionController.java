@@ -2,7 +2,7 @@ package info.mengnan.aitalk.server.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.repository.entity.ChatOption;
-import info.mengnan.aitalk.repository.service.ChatOptionService;
+import info.mengnan.aitalk.repository.repo.ChatOptionRepository;
 import info.mengnan.aitalk.server.param.R;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OptionController {
 
-    private final ChatOptionService chatOptionService;
+    private final ChatOptionRepository chatOptionService;
 
     @GetMapping("/list")
     public R list() {

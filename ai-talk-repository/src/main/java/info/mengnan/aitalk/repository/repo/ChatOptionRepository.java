@@ -1,0 +1,51 @@
+package info.mengnan.aitalk.repository.repo;
+
+import info.mengnan.aitalk.repository.entity.ChatOption;
+import info.mengnan.aitalk.repository.mapper.ChatOptionMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+@RequiredArgsConstructor
+public class ChatOptionRepository {
+
+    private final ChatOptionMapper mapper;
+
+    public ChatOption findById(Long id) {
+        return mapper.findById(id);
+    }
+
+    public ChatOption findByNameExact(String name) {
+        return mapper.findByNameExact(name);
+    }
+
+    public List<ChatOption> findByName(String name) {
+        return mapper.findByName(name);
+    }
+
+    public List<ChatOption> findByEnabled(Boolean enabled) {
+        return mapper.findByEnabled(enabled);
+    }
+
+    public List<ChatOption> findAll() {
+        return mapper.selectList(null);
+    }
+
+    public List<ChatOption> findByMemberId(Long memberId) {
+        return mapper.findByMemberId(memberId);
+    }
+
+    public void insert(ChatOption entity) {
+        mapper.insert(entity);
+    }
+
+    public void update(ChatOption entity) {
+        mapper.updateById(entity);
+    }
+
+    public void deleteById(Long id) {
+        mapper.deleteById(id);
+    }
+}

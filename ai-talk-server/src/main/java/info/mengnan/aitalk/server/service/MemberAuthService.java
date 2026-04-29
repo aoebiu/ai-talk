@@ -2,7 +2,7 @@
 
 import cn.dev33.satoken.stp.StpUtil;
 import info.mengnan.aitalk.repository.entity.ChatMember;
-import info.mengnan.aitalk.repository.service.MemberService;
+import info.mengnan.aitalk.repository.repo.MemberRepository;
 import info.mengnan.aitalk.server.param.auth.MemberResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,7 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MemberAuthService {
 
-    private final MemberService memberService;
+    private final MemberRepository memberService;
 
     /**
      * 用户注册

@@ -232,4 +232,73 @@ CREATE TABLE `chat_project_api_key`
 BEGIN;
 COMMIT;
 
+-- ----------------------------
+-- Table structure for biz_config
+-- ----------------------------
+DROP TABLE IF EXISTS `biz_config`;
+CREATE TABLE `biz_config`
+(
+    `id`              bigint(20)   NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `member_id`       bigint(20)   NOT NULL COMMENT '所属用户',
+    `config_key`      varchar(191) NOT NULL COMMENT '配置键，如 amap.web_service_key',
+    `config_value`    text         NOT NULL COMMENT '配置值，encrypt_storage=1 时为密文',
+    `encrypt_storage` tinyint(1)   NOT NULL DEFAULT 0 COMMENT '是否加密存储：1 是 0 否',
+    `remark`          varchar(500)          DEFAULT NULL COMMENT '备注',
+    `created_at`      timestamp    NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`      timestamp    NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_biz_config_member_key` (`member_id`, `config_key`),
+    KEY `idx_biz_config_member_id` (`member_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci COMMENT ='业务配置（第三方 Key 等）';
+
+-- ----------------------------
+-- Direct model invoke audit (directInvoke / directInvokeRaw)
+-- ----------------------------
+DROP TABLE IF EXISTS `direct_model_invoke_log`;
+CREATE TABLE `direct_model_invoke_log`
+(
+    `id`              bigint(20)   NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `invoke_source`   varchar(512) NOT NULL COMMENT '调用来源',
+    `template_name`   varchar(255)          DEFAULT NULL COMMENT '模板名（模板调用时有值）',
+    `prompt_text`     mediumtext   NOT NULL COMMENT '完整提示词',
+    `model_name`      varchar(255)          DEFAULT NULL COMMENT '解析到的模型名',
+    `model_provider`  varchar(255)          DEFAULT NULL COMMENT '模型提供方',
+    `response_text`   mediumtext            DEFAULT NULL COMMENT '模型返回文本',
+    `success`         tinyint(1)   NOT NULL COMMENT '是否成功',
+    `error_message`   text                  DEFAULT NULL COMMENT '失败信息',
+    `duration_ms`     bigint(20)   NOT NULL COMMENT '耗时毫秒',
+    `created_at`      timestamp    NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_invoke_source` (`invoke_source`(191)),
+    KEY `idx_created_at` (`created_at`),
+    KEY `idx_success` (`success`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci COMMENT ='直接模型调用审计日志';
+
+-- ----------------------------
+-- Table structure for async_task
+-- ----------------------------
+DROP TABLE IF EXISTS `async_task`;
+CREATE TABLE `async_task` (
+    `id`            bigint(20)   NOT NULL AUTO_INCREMENT,
+    `task_id`       varchar(64)  NOT NULL COMMENT '任务唯一标识(UUID)',
+    `member_id`     bigint(20)   NOT NULL COMMENT '所属用户',
+    `task_type`     varchar(50)  NOT NULL COMMENT '任务类型: GENERATE_SCRIPT, RAG_VECTORIZE...',
+    `status`        varchar(20)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/RUNNING/COMPLETED/FAILED',
+    `current_step`  int(11)               DEFAULT 0 COMMENT '当前步骤序号(从1开始)',
+    `total_steps`   int(11)               DEFAULT 0 COMMENT '总步骤数',
+    `steps`         json                  DEFAULT NULL COMMENT '步骤详情JSON数组',
+    `result`        mediumtext            DEFAULT NULL COMMENT '最终结果JSON',
+    `error_message` text                  DEFAULT NULL COMMENT '错误信息',
+    `created_at`    timestamp    NULL     DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`    timestamp    NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_task_id` (`task_id`),
+    KEY `idx_member_id` (`member_id`),
+    KEY `idx_task_type_status` (`task_type`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='通用异步任务进度表';
+
 SET FOREIGN_KEY_CHECKS = 1;

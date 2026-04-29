@@ -7,9 +7,9 @@ import info.mengnan.aitalk.rag.config.ModelConfig;
 import info.mengnan.aitalk.repository.entity.ChatApiKey;
 import info.mengnan.aitalk.repository.entity.ChatOption;
 import info.mengnan.aitalk.repository.entity.ChatOptionApiKeyRel;
-import info.mengnan.aitalk.repository.service.ChatApiKeyService;
-import info.mengnan.aitalk.repository.service.ChatOptionApiKeyRelService;
-import info.mengnan.aitalk.repository.service.ChatOptionService;
+import info.mengnan.aitalk.repository.repo.ChatApiKeyRepository;
+import info.mengnan.aitalk.repository.repo.ChatOptionApiKeyRelRepository;
+import info.mengnan.aitalk.repository.repo.ChatOptionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,9 +30,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RagAdapterService {
 
-    private final ChatOptionService chatOptionService;
-    private final ChatApiKeyService chatApiKeyService;
-    private final ChatOptionApiKeyRelService chatOptionApiKeyRelService;
+    private final ChatOptionRepository chatOptionService;
+    private final ChatApiKeyRepository chatApiKeyService;
+    private final ChatOptionApiKeyRelRepository chatOptionApiKeyRelService;
     private final AssembledModelsConstruct assembledModelsConstruct;
 
     /**
