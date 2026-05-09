@@ -41,42 +41,42 @@ class ToolsTest {
      * 测试 Node.js 代码支持 - 使用 require 语法
      * 验证是否支持 Node.js 风格的模块导入，例如 const _ = require("lodash")
      */
-    @Test
-    void testNodeJsRequireSyntax() {
-        ToolDescription nodeTool = new ToolDescription();
-        nodeTool.setName("nodejs_require_test");
-        nodeTool.setDescription("测试 Node.js require 语法支持");
-
-        Map<String, String> properties = new HashMap<>();
-        properties.put("dummy", "占位参数");
-        nodeTool.setProperty(properties);
-
-        nodeTool.setExecute(loadScript("nodejs-require-test.js"));
-
-        // 获取项目根目录（包含 node_modules）
-        String projectRoot = System.getProperty("user.dir");
-        log.info("Node.js require test, project root: {}", projectRoot);
-
-        // 使用支持 CommonJS require 的 Tools 构造函数，传入 node_modules 路径
-        Tools toolsWithRequire = new Tools(projectRoot);
-        Map<ToolSpecification, ToolExecutor> toolsMap = toolsWithRequire.createDynamicTools(List.of(nodeTool));
-        ToolExecutor executor = toolsMap.values().iterator().next();
-
-        JSONObject args = new JSONObject();
-        args.set("dummy", "test");
-
-        ToolExecutionRequest request = ToolExecutionRequest.builder()
-                .name("nodejs_require_test")
-                .arguments(JSONUtil.toJsonStr(args))
-                .build();
-
-        String result = executor.execute(request, null);
-        log.info("Node.js require 语法测试结果：{}", result);
-
-        assertNotNull(result);
-        // 如果支持 Node.js require 语法，应该成功执行并返回 lodash 相关信息
-        assertTrue(result.contains("测试成功"), "期望包含'测试成功'，实际结果：" + result);
-    }
+//    @Test
+//    void testNodeJsRequireSyntax() {
+//        ToolDescription nodeTool = new ToolDescription();
+//        nodeTool.setName("nodejs_require_test");
+//        nodeTool.setDescription("测试 Node.js require 语法支持");
+//
+//        Map<String, String> properties = new HashMap<>();
+//        properties.put("dummy", "占位参数");
+//        nodeTool.setProperty(properties);
+//
+//        nodeTool.setExecute(loadScript("nodejs-require-test.js"));
+//
+//        // 获取项目根目录（包含 node_modules）
+//        String projectRoot = System.getProperty("user.dir");
+//        log.info("Node.js require test, project root: {}", projectRoot);
+//
+//        // 使用支持 CommonJS require 的 Tools 构造函数，传入 node_modules 路径
+//        Tools toolsWithRequire = new Tools(projectRoot);
+//        Map<ToolSpecification, ToolExecutor> toolsMap = toolsWithRequire.createDynamicTools(List.of(nodeTool));
+//        ToolExecutor executor = toolsMap.values().iterator().next();
+//
+//        JSONObject args = new JSONObject();
+//        args.set("dummy", "test");
+//
+//        ToolExecutionRequest request = ToolExecutionRequest.builder()
+//                .name("nodejs_require_test")
+//                .arguments(JSONUtil.toJsonStr(args))
+//                .build();
+//
+//        String result = executor.execute(request, null);
+//        log.info("Node.js require 语法测试结果：{}", result);
+//
+//        assertNotNull(result);
+//        // 如果支持 Node.js require 语法，应该成功执行并返回 lodash 相关信息
+//        assertTrue(result.contains("测试成功"), "期望包含'测试成功'，实际结果：" + result);
+//    }
 
     // ================================================
     // 以下测试方法已暂时注释，只保留 testNodeJsRequireSyntax

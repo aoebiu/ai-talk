@@ -28,4 +28,8 @@ public class ChatMessageRepository {
     public void deleteBySessionId(String sessionId) {
         mapper.deleteBySessionId(sessionId);
     }
+
+    public void truncateMessagesFrom(String sessionId, Long messageId) {
+        mapper.truncateMessagesFrom(sessionId, messageId);
+    }
 }

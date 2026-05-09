@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ChatSessionResponse {
 
+    public static final String DEFAULT_TITLE = "新对话";
+
     private String sessionId;
     private String title;
     private LocalDateTime lastModified;

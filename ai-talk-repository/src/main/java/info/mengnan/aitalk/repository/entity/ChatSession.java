@@ -9,8 +9,6 @@ import java.time.LocalDateTime;
 @TableName("chat_session")
 public class ChatSession {
 
-    public static final String DEFAULT_TITLE = "新对话";
-
     @TableId(type = IdType.AUTO)
     private Long id;
 

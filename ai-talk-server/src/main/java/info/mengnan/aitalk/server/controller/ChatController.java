@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static info.mengnan.aitalk.common.param.MessageRole.*;
+import static info.mengnan.aitalk.server.param.chat.ChatSessionResponse.DEFAULT_TITLE;
 
 
 @Slf4j
@@ -68,10 +69,7 @@ public class ChatController {
         if (chatSession != null) {
             List<ChatMessage> chatMessageList = chatMessageService.findChat(chatSession.getChatSessionId());
             if (chatMessageList.isEmpty()) {
-                ChatSessionResponse sessionResult = new ChatSessionResponse(chatSession.getChatSessionId(),
-                        ChatSession.DEFAULT_TITLE,
-                        chatSession.getUpdatedAt());
-                return R.ok(sessionResult);
+                return R.ok();
             }
         }
 
@@ -79,9 +77,9 @@ public class ChatController {
         ChatSession session = new ChatSession();
         session.setChatSessionId(sessionId);
         session.setMemberId(StpUtil.getLoginIdAsLong());
-        session.setTitle(ChatSession.DEFAULT_TITLE);
+        session.setTitle(DEFAULT_TITLE);
         chatSessionService.createChat(session);
-        ChatSessionResponse sessionResult = new ChatSessionResponse(sessionId, ChatSession.DEFAULT_TITLE, session.getUpdatedAt());
+        ChatSessionResponse sessionResult = new ChatSessionResponse(sessionId, DEFAULT_TITLE, session.getUpdatedAt());
         return R.ok(sessionResult);
     }
 
@@ -92,14 +90,14 @@ public class ChatController {
         ChatConversations chatConversations = new ChatConversations(memberId,sessionId);
 
         ChatSession chatSession = chatSessionService.findBySessionId(sessionId);
-        if (chatSession != null && ChatSession.DEFAULT_TITLE.equals(chatSession.getTitle())) {
+        if (chatSession != null && DEFAULT_TITLE.equals(chatSession.getTitle())) {
             List<String> list = chatMessageService.findChatByRole(sessionId,List.of(ASSISTANT.n(), USER.n())).stream()
                     .map(ChatMessage::getContent)
                     .limit(3)
                     .toList();
             if (list.size() >= 2) {
                 Map<String, Object> params = Map.of("query", list);
-                String title = directModelInvoker.directInvoke("ChatController.conversations",
+                String title = directModelInvoker.directInvoke("conversations.titleGeneration",
                         "title_generation", params);
                 chatConversations.setTitle(title);
                 chatSessionService.updateChatTitle(sessionId, title);
@@ -114,12 +112,15 @@ public class ChatController {
      * 使用回调接口将 ChatService 的响应转换为 Flux
      */
     private Flux<String> streamResponse(ChatRequest chatRequest) {
-        Long memberId = StpUtil.getLoginIdAsLong();
         return Flux.create(sink -> {
             try {
+                // 截断消息
+                if (chatRequest.getFromMessageId() != null)
+                    chatMessageService.truncateMessagesFrom(chatRequest.getSessionId(), chatRequest.getFromMessageId());
+
                 // 组装 AssembledModels
                 AssembledModels assembledModels = ragAdapterService.assembleModels(chatRequest.getOptionId());
-                Map<ToolSpecification, ToolExecutor> toolMap = toolAdapterService.dynamicTools(memberId);
+                Map<ToolSpecification, ToolExecutor> toolMap = toolAdapterService.dynamicTools(chatRequest.getMemberId());
                 // 创建回调处理器
                 StreamingResponseHandler handler = new FluxStreamingResponseHandler(sink, chatRequest.getSessionId());
 
@@ -145,15 +146,13 @@ public class ChatController {
         return R.ok(list);
     }
 
-
-    // todo 提供接口,设计修改指定的用户消息,并且删除此条消息之后发出的消息
-
     /**
-     * 清空会话历史
+     * 删除会话
      */
-    @DeleteMapping("/history/{sessionId}")
-    public R clearHistory(@PathVariable String sessionId) {
+    @DeleteMapping("/sessions/{sessionId}")
+    public R clearHistory(@PathVariable(name = "sessionId") String sessionId) {
         chatMessageService.deleteBySessionId(sessionId);
+        chatSessionService.deleteBySessionId(sessionId);
         return R.ok();
     }
 

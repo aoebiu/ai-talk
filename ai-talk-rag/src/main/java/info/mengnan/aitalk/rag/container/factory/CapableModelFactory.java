@@ -4,22 +4,18 @@ import info.mengnan.aitalk.common.param.ModelType;
 import info.mengnan.aitalk.rag.config.ModelConfig;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
-
-import static info.mengnan.aitalk.common.param.ModelType.*;
+import java.net.URL;
+import java.util.*;
 
 /**
  * 通用模型工厂实现
- * 继承 RagContainer，同时实现多种模型工厂接口
- * 集成了容器管理和模型创建的能力
+ * 从 META-INF/model-mapping/*.properties 配置文件中加载 Provider 映射，
+ * 运行时通过反射创建模型实例。
  *
- * 支持的提供商和模型类型：
- * - DashScope (阿里云通义千问): CHAT, STREAMING_CHAT, EMBEDDING, IMAGE
- * - Ollama: CHAT, STREAMING_CHAT, EMBEDDING
- * - Cohere: SCORING
- * - OpenAI: MODERATE, IMAGE
+ * 新增 Provider 只需在 classpath 中添加对应的 properties 文件，无需编写 Java 代码。
  */
 @Slf4j
 public class CapableModelFactory implements ChatModelFactory,
@@ -28,54 +24,125 @@ public class CapableModelFactory implements ChatModelFactory,
                                             ModerationModelFactory,
                                             ImageModelFactory {
 
-    private final Map<ModelProvider, Map<ModelType, String>> MODEL_CLASS_MAPPING = new HashMap<>();
+    private static final String MAPPING_LOCATION = "META-INF/model-mapping/";
 
+    private final Map<String, Map<ModelType, String>> modelClassMapping = new HashMap<>();
 
     public CapableModelFactory() {
-        // DashScope (通义千问) - 支持聊天、流式聊天、嵌入、图生文
-        Map<ModelType, String> dashscopeModels = new HashMap<>();
-        dashscopeModels.put(CHAT, "dev.langchain4j.community.model.dashscope.QwenChatModel");
-        dashscopeModels.put(STREAMING_CHAT, "dev.langchain4j.community.model.dashscope.QwenStreamingChatModel");
-        dashscopeModels.put(EMBEDDING, "dev.langchain4j.community.model.dashscope.QwenEmbeddingModel");
-        dashscopeModels.put(IMAGE, "dev.langchain4j.community.model.dashscope.QwenImageModel");
-        MODEL_CLASS_MAPPING.put(ModelProvider.DASHSCOPE, dashscopeModels);
+        loadMappings();
+    }
 
-        // Ollama - 支持聊天、流式聊天、嵌入
-        Map<ModelType, String> ollamaModels = new HashMap<>();
-        ollamaModels.put(CHAT, "dev.langchain4j.model.ollama.OllamaChatModel");
-        ollamaModels.put(STREAMING_CHAT, "dev.langchain4j.model.ollama.OllamaStreamingChatModel");
-        ollamaModels.put(EMBEDDING, "dev.langchain4j.model.ollama.OllamaEmbeddingModel");
-        MODEL_CLASS_MAPPING.put(ModelProvider.OLLAMA, ollamaModels);
+    private void loadMappings() {
+        try {
+            Thread.currentThread().getContextClassLoader().getResources(MAPPING_LOCATION);
 
-        // Cohere - 支持评分
-        Map<ModelType, String> cohereModels = new HashMap<>();
-        cohereModels.put(SCORING, "dev.langchain4j.model.cohere.CohereScoringModel");
-        MODEL_CLASS_MAPPING.put(ModelProvider.COHERE, cohereModels);
+        } catch (IOException e) {
+            log.warn("Failed to scan model-mapping directory", e);
+        }
 
-        // OpenAI - 支持审核、图生文
-        Map<ModelType, String> openaiModels = new HashMap<>();
-        openaiModels.put(MODERATE, "dev.langchain4j.model.openai.OpenAiModerationModel");
-        openaiModels.put(IMAGE, "dev.langchain4j.model.openai.OpenAiImageModel");
-        MODEL_CLASS_MAPPING.put(ModelProvider.OPENAI, openaiModels);
+        try {
+            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+            Enumeration<URL> allResources = classLoader.getResources("META-INF/model-mapping");
+
+            while (allResources.hasMoreElements()) {
+                URL dirUrl = allResources.nextElement();
+                loadFromDirectory(dirUrl, classLoader);
+            }
+        } catch (IOException e) {
+            log.error("Failed to load model mapping configurations", e);
+        }
+    }
+
+    private void loadFromDirectory(URL dirUrl, ClassLoader classLoader) {
+        String protocol = dirUrl.getProtocol();
+
+        if ("file".equals(protocol)) {
+            loadFromFileSystem(dirUrl);
+        } else if ("jar".equals(protocol)) {
+            loadFromJar(dirUrl, classLoader);
+        }
+    }
+
+    private void loadFromFileSystem(URL dirUrl) {
+        java.io.File dir = new java.io.File(dirUrl.getPath());
+        if (dir.isDirectory()) {
+            java.io.File[] files = dir.listFiles((d, name) -> name.endsWith(".properties"));
+            if (files != null) {
+                for (java.io.File file : files) {
+                    try (InputStream is = file.toURI().toURL().openStream()) {
+                        loadSingleMapping(is, file.getName());
+                    } catch (IOException e) {
+                        log.warn("Failed to load mapping file: {}", file.getName(), e);
+                    }
+                }
+            }
+        }
+    }
+
+    private void loadFromJar(URL dirUrl, ClassLoader classLoader) {
+        try {
+            String jarPath = dirUrl.getPath();
+            // jar:file:/path/to/jar.jar!/META-INF/model-mapping
+            String jarFile = jarPath.substring(0, jarPath.indexOf("!"));
+            java.util.jar.JarFile jar = new java.util.jar.JarFile(
+                    new java.io.File(new java.net.URI(jarFile)));
+
+            Enumeration<java.util.jar.JarEntry> entries = jar.entries();
+            while (entries.hasMoreElements()) {
+                java.util.jar.JarEntry entry = entries.nextElement();
+                String name = entry.getName();
+                if (name.startsWith(MAPPING_LOCATION) && name.endsWith(".properties") && !entry.isDirectory()) {
+                    try (InputStream is = classLoader.getResourceAsStream(name)) {
+                        if (is != null) {
+                            loadSingleMapping(is, name);
+                        }
+                    }
+                }
+            }
+            jar.close();
+        } catch (Exception e) {
+            log.warn("Failed to load mappings from JAR: {}", dirUrl, e);
+        }
+    }
+
+    private void loadSingleMapping(InputStream is, String source) throws IOException {
+        Properties props = new Properties();
+        props.load(is);
+
+        String providerCode = props.getProperty("providerCode");
+        if (providerCode == null || providerCode.isBlank()) {
+            log.warn("Skipping mapping file without providerCode: {}", source);
+            return;
+        }
+
+        Map<ModelType, String> typeMapping = new HashMap<>();
+        for (ModelType modelType : ModelType.values()) {
+            String className = props.getProperty(modelType.name());
+            if (className != null && !className.isBlank()) {
+                typeMapping.put(modelType, className.trim());
+            }
+        }
+
+        modelClassMapping.put(providerCode, typeMapping);
+        log.info("Loaded model mapping for provider: {} from {} (types: {})",
+                providerCode, source, typeMapping.keySet());
     }
 
     @Override
     public Object createModel(ModelConfig modelConfig, ModelType modelType) {
         try {
-            // 获取提供商
-            ModelProvider provider = ModelProvider.fromCode(modelConfig.getModelProvider());
+            String providerCode = modelConfig.getModelProvider();
 
-            // 获取对应的模型类名
-            Map<ModelType, String> providerModels = MODEL_CLASS_MAPPING.get(provider);
+            Map<ModelType, String> providerModels = modelClassMapping.get(providerCode);
             if (providerModels == null) {
                 throw new UnsupportedOperationException(
-                        "Unsupported model provider: " + provider);
+                        "Unsupported model provider: " + providerCode);
             }
 
             String className = providerModels.get(modelType);
             if (className == null) {
                 throw new UnsupportedOperationException(
-                        "Model type '" + modelType + "' is not supported for provider: " + provider);
+                        "Model type '" + modelType + "' is not supported for provider: " + providerCode);
             }
 
             // 动态加载类
@@ -107,16 +174,16 @@ public class CapableModelFactory implements ChatModelFactory,
             Object model = buildMethod.invoke(builder);
 
             log.info("Successfully created {} model: {} (provider: {}, modelName: {})",
-                    modelType, className, provider, modelConfig.getModelName());
+                    modelType, className, providerCode, modelConfig.getModelName());
 
             return model;
         } catch (ClassNotFoundException e) {
             throw new UnsupportedOperationException(
-                    "Model class not found in classpath. Please add the corresponding Maven dependency for provider: "
-                            + ModelProvider.fromCode(modelConfig.getModelProvider()), e);
+                    "Model class not found in classpath. Please add the corresponding dependency for provider: "
+                            + modelConfig.getModelProvider(), e);
         } catch (Exception e) {
             throw new RuntimeException(
-                    "Failed to create model for provider: " + ModelProvider.fromCode(modelConfig.getModelProvider())
+                    "Failed to create model for provider: " + modelConfig.getModelProvider()
                             + ", type: " + modelType, e);
         }
     }

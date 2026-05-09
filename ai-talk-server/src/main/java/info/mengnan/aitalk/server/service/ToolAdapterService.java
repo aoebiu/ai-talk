@@ -2,11 +2,9 @@ package info.mengnan.aitalk.server.service;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.service.tool.ToolExecutor;
-import info.mengnan.aitalk.common.http.HttpClients;
 import info.mengnan.aitalk.common.util.JSONUtil;
 import info.mengnan.aitalk.repository.entity.ChatToolDescription;
 import info.mengnan.aitalk.repository.repo.ToolDescriptionRepository;
-import info.mengnan.aitalk.common.crypto.JwtHelper;
 import info.mengnan.aitalk.tool.ToolDescription;
 import info.mengnan.aitalk.tool.Tools;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +29,6 @@ public class ToolAdapterService {
     private final ToolDescriptionRepository toolDescriptionService;
     private final BizConfigService bizConfigService;
 
-    // node_modules 所在的基础路径
     private static final String NODE_MODULES_PATH = System.getProperty("user.dir") + "/ai-talk-tool";
 
 
@@ -39,10 +36,7 @@ public class ToolAdapterService {
         log.info("Creating and initializing dynamic tools...");
 
         Tools tools = new Tools(
-                new HttpClients(),
-                key -> bizConfigService.getPlainValue(memberId, key),
-                new JwtHelper(),
-                null
+                key -> bizConfigService.getPlainValue(memberId, key)
         );
 
         // 从数据库查询所有工具描述
@@ -92,10 +86,7 @@ public class ToolAdapterService {
      */
     public String executeTool(ChatToolDescription tool, String parameters) {
         Tools tools = new Tools(
-                new HttpClients(),
-                key -> bizConfigService.getPlainValue(tool.getMemberId(), key),
-                new JwtHelper(),
-                null
+                key -> bizConfigService.getPlainValue(tool.getMemberId(), key)
         );
 
         ToolDescription toolDescription = convertToDescription(tool);

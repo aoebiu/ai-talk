@@ -3,25 +3,28 @@ package info.mengnan.aitalk.tool;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.service.tool.ToolExecutor;
-import info.mengnan.aitalk.common.crypto.JwtHelper;
-import info.mengnan.aitalk.common.http.HttpClients;
 import info.mengnan.aitalk.common.json.JSONObject;
 import info.mengnan.aitalk.common.util.JSONUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 // 需要 graalvm
 // 并且执行 sudo ${JAVA_HOME}/lib/installer/bin/gu install js
 @Slf4j
 public class Tools {
 
-    private final Context context;
+    private final Engine sharedEngine;
+    private final ContextPool contextPool;
+    private final Map<String, Object> bindings;
+    private final ConfigProvider configProvider;
+
+    private static final int DEFAULT_POOL_SIZE = 4;
+    private static final String BINDINGS_CONFIG = "META-INF/bindings_config";
 
     private static final String FUNCTION_EXECUTE_SCRIPT =
             """
@@ -40,65 +43,66 @@ public class Tools {
                     })();
                     """;
 
-
     /**
-     * 构造函数（仅指定 node_modules 路径）
-     * @param nodeModulesPath node_modules 所在的基础路径
-     *                        如果为 null，则使用当前工作目录
+     * @param configProvider 配置提供者（需外部传入，因为依赖数据库等外部资源）
      */
-    public Tools(String nodeModulesPath) {
-        this(null, null, null, nodeModulesPath);
+    public Tools(ConfigProvider configProvider) {
+        this(configProvider, DEFAULT_POOL_SIZE);
     }
 
     /**
-     * 构造函数（带 HTTP 客户端和配置提供者）
-     * @param httpClients HTTP 客户端，用于发起 HTTP 请求
-     * @param configProvider 配置提供者，用于读取数据库配置
+     * @param configProvider 配置提供者（需外部传入，因为依赖数据库等外部资源）
+     * @param poolSize Context 对象池大小
      */
-    public Tools(HttpClients httpClients, ConfigProvider configProvider) {
-        this(httpClients, configProvider, null, null);
+    public Tools(ConfigProvider configProvider, int poolSize) {
+        this.configProvider = configProvider;
+        this.sharedEngine = Engine.create();
+        this.contextPool = new ContextPool(poolSize);
+
+        // 从配置文件加载绑定声明，格式：bindingName:全限定类名
+        this.bindings = loadBindings();
+
+        for (int i = 0; i < poolSize; i++) {
+            contextPool.add(createContext());
+        }
     }
 
     /**
-     * 完整构造函数
-     * @param httpClients HTTP 客户端，用于发起 HTTP 请求（可选）
-     * @param configProvider 配置提供者，用于读取数据库配置（可选）
-     * @param jwtHelper JWT 辅助类，用于生成 JWT（可选）
-     * @param nodeModulesPath node_modules 所在的基础路径（可选）
-     *                        如果为 null，则使用当前工作目录
+     * 从 META-INF/bindings_config 加载绑定，委托给 {@link BindingLoader}。
      */
-    public Tools(HttpClients httpClients, ConfigProvider configProvider, JwtHelper jwtHelper, String nodeModulesPath) {
-        // 创建 GraalJS 上下文
-        Map<String, String> options = new HashMap<>();
-        options.put("js.commonjs-require", "true");
-        // 指定 node_modules 所在的根目录
-        String requireCwd = (nodeModulesPath != null && !nodeModulesPath.isEmpty())
-                ? nodeModulesPath
-                : System.getProperty("user.dir") + "/ai-talk-tool";
-        options.put("js.commonjs-require-cwd", requireCwd);
+    private Map<String, Object> loadBindings() {
+        return BindingLoader.load(BINDINGS_CONFIG);
+    }
 
-        this.context = Context.newBuilder("js")
-                .allowExperimentalOptions(true)  // 必须允许实验性选项
-                .allowIO(true)                  // require() 需要读取文件系统
-                .allowHostAccess(true)          // 允许 JS 访问 Java 对象的方法
-                .options(options)
+    /**
+     * 创建一个绑定好依赖的 Context
+     */
+    private Context createContext() {
+        Context context = Context.newBuilder("js")
+                .engine(sharedEngine)
+                .allowHostAccess(true)
                 .build();
 
-        // 注入 HttpClients 到 GraalJS 上下文，让脚本可以发起 HTTP 请求
-        if (httpClients != null) {
-            context.getBindings("js").putMember("http", httpClients);
+        // 配置文件声明的绑定
+        for (Map.Entry<String, Object> entry : bindings.entrySet()) {
+            context.getBindings("js").putMember(entry.getKey(), entry.getValue());
         }
-        // 注入配置提供者，JS 中可通过 config.getConfig(key) 读取数据库配置
+
+        // ConfigProvider 需要外部注入，手动绑定
         if (configProvider != null) {
-            // 使用静态嵌套类，让 GraalVM 能够通过 getConfig 方法名调用
             context.getBindings("js").putMember("config", configProvider);
         }
-        // 注入 JWT 辅助类，JS 中可通过 jwt.encode(...) 生成 JWT
-        if (jwtHelper != null) {
-            context.getBindings("js").putMember("jwt", jwtHelper);
-        }
+
+        return context;
     }
 
+    /**
+     * 关闭所有资源
+     */
+    public void shutdown() {
+        contextPool.shutdown();
+        sharedEngine.close();
+    }
 
     /**
      * 根据工具描述列表创建动态工具
@@ -161,12 +165,16 @@ public class Tools {
      */
     private ToolExecutor createExecutor(ToolDescription desc) {
         return (request, memoryId) -> {
+            Context context = null;
             try {
                 // 验证执行脚本是否存在
                 if (desc.getExecute() == null || desc.getExecute().trim().isEmpty()) {
                     log.error("Tool {} has no execute script defined", desc.getName());
-                    return "执行失败：工具未定义执行脚本";
+                    return "execution failed: no execute script defined";
                 }
+
+                // 从池中借出 Context
+                context = contextPool.borrow();
 
                 // 解析参数
                 JSONObject jsonObject = JSONUtil.parseObj(request.arguments());
@@ -205,16 +213,23 @@ public class Tools {
                 } else if (result.hasArrayElements()) {
                     // 处理数组返回值
                     return JSONUtil.parseArray(result).toString();
-                }
-                else if (result.hasMembers()) {
+                } else if (result.hasMembers()) {
                     // 处理对象返回值
-                     return JSONUtil.parseObj(result.toString()).toString();
+                    return JSONUtil.parseObj(result.toString()).toString();
                 } else {
                     return result.toString();
                 }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("Interrupted while waiting for context: {}", desc.getName(), e);
+                return "execution failed: interrupted while waiting for context";
             } catch (Exception e) {
                 log.error("Failed to execute tool: {}", desc.getName(), e);
-                return "执行失败：" + e.getMessage();
+                return "execution failed: " + e.getMessage();
+            } finally {
+                if (context != null) {
+                    contextPool.returnContext(context);
+                }
             }
         };
     }

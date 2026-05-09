@@ -33,11 +33,19 @@ public class ChatSessionRepository {
 
     public ChatSession findLastByMemberId(Long memberId) {
         return mapper.selectOne(new LambdaQueryWrapper<ChatSession>()
-                .eq(ChatSession::getMemberId, memberId).last("limit 1"));
+                .eq(ChatSession::getMemberId, memberId)
+                .orderByDesc(ChatSession::getId)
+                .last("limit 1"));
     }
 
     public List<ChatSession> findAllByMemberId(Long memberId) {
         return mapper.selectList(new LambdaQueryWrapper<ChatSession>()
-                .eq(ChatSession::getMemberId, memberId));
+                .eq(ChatSession::getMemberId, memberId)
+                .orderByDesc(ChatSession::getId));
+    }
+
+    public void deleteBySessionId(String sessionId) {
+        mapper.delete(new LambdaQueryWrapper<ChatSession>()
+                .eq(ChatSession::getChatSessionId, sessionId));
     }
 }
