@@ -5,8 +5,9 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import info.mengnan.aitalk.repository.async.AsyncTaskStatus;
-import info.mengnan.aitalk.repository.async.AsyncTaskType;
+import info.mengnan.aitalk.repository.config.AsyncTaskStepDetail;
+import info.mengnan.aitalk.repository.enums.AsyncTaskStatus;
+import info.mengnan.aitalk.repository.enums.AsyncTaskType;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -31,7 +32,7 @@ public class AsyncTask {
     private Integer totalSteps;
 
     /**
-     * 步骤详情 JSON 数组，结构见 {@link info.mengnan.aitalk.repository.async.AsyncTaskStepDetail}
+     * 步骤详情 JSON 数组，结构见 {@link AsyncTaskStepDetail}
      */
     private String steps;
 

@@ -31,13 +31,11 @@ public class PromptTemplateConstant {
             """
     );
 
-    public static final PromptTemplate CONTENT_INJECTOR_PROMPT_TEMPLATE = PromptTemplate.from(
-            """
-                        {{userMessage}}
+    /** 注入分隔符：用于在保存时将原始用户消息从注入内容中剥离 */
+    public static final String CONTENT_INJECTION_SEPARATOR = "\n\nUse the following information to answer:\n";
 
-                        Use the following information to answer:
-                        {{contents}}
-                    """
+    public static final PromptTemplate CONTENT_INJECTOR_PROMPT_TEMPLATE = PromptTemplate.from(
+            "{{userMessage}}" + CONTENT_INJECTION_SEPARATOR + "{{contents}}"
     );
 
     public static final PromptTemplate TITLE_GENERATION_PROMPT_TEMPLATE = PromptTemplate.from("""

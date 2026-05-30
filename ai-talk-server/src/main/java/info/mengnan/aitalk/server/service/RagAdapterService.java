@@ -53,7 +53,7 @@ public class RagAdapterService {
 
         List<ModelConfig> modelConfigs = new ArrayList<>();
         if (!relations.isEmpty()) {
-            List<Long> relIds = relations.stream().map(ChatOptionApiKeyRel::getId).toList();
+            List<Long> relIds = relations.stream().map(ChatOptionApiKeyRel::getChatApiKeyId).toList();
             Map<Long, ChatApiKey> chatApiKeyMap = chatApiKeyService.findByIds(relIds).stream()
                     .collect(Collectors.toMap(ChatApiKey::getId, Function.identity()));
             for (ChatOptionApiKeyRel rel : relations) {

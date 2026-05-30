@@ -10,11 +10,15 @@ import dev.langchain4j.model.moderation.DisabledModerationModel;
 import dev.langchain4j.model.moderation.ModerationModel;
 import dev.langchain4j.model.scoring.ScoringModel;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
+import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.aggregator.ContentAggregator;
 import dev.langchain4j.rag.content.aggregator.DefaultContentAggregator;
 import dev.langchain4j.rag.content.aggregator.ReRankingContentAggregator;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import info.mengnan.aitalk.rag.injector.CapturingContentInjector;
+import info.mengnan.aitalk.rag.injector.RagSourceStore;
 import dev.langchain4j.rag.query.router.DefaultQueryRouter;
 import dev.langchain4j.rag.query.router.LanguageModelQueryRouter;
 import dev.langchain4j.rag.query.router.QueryRouter;
@@ -22,9 +26,10 @@ import dev.langchain4j.rag.query.transformer.DefaultQueryTransformer;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.ToolExecutor;
-import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import info.mengnan.aitalk.kb.core.DynamicEmbeddingStoreRegistry;
+import info.mengnan.aitalk.kb.core.KnowledgeBaseIndexResolver;
+import info.mengnan.aitalk.kb.core.KnowledgeBaseIndexResolver.KbIndexRef;
 import info.mengnan.aitalk.rag.config.ModelConfig;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
 import info.mengnan.aitalk.rag.container.assemble.AssembledModels;
@@ -50,15 +55,21 @@ public class ChatService {
     private final ModelRegistry modelRegistry;
     private final DynamicEmbeddingStoreRegistry embeddingStoreRegistry;
     private final ModelConfigProvider modelConfigProvider;
+    private final KnowledgeBaseIndexResolver knowledgeBaseIndexResolver;
+    private final RagSourceStore ragSourceStore;
 
     public ChatService(ChatMemoryStore chatMemoryStore,
                        ModelRegistry modelRegistry,
                        DynamicEmbeddingStoreRegistry embeddingStoreRegistry,
-                       ModelConfigProvider modelConfigProvider) {
+                       ModelConfigProvider modelConfigProvider,
+                       KnowledgeBaseIndexResolver knowledgeBaseIndexResolver,
+                       RagSourceStore ragSourceStore) {
         this.chatMemoryStore = chatMemoryStore;
         this.modelRegistry = modelRegistry;
         this.embeddingStoreRegistry = embeddingStoreRegistry;
         this.modelConfigProvider = modelConfigProvider;
+        this.knowledgeBaseIndexResolver = knowledgeBaseIndexResolver;
+        this.ragSourceStore = ragSourceStore;
     }
 
     private final static ThreadPoolExecutor POOL_EXECUTOR = new ThreadPoolExecutor(
@@ -75,20 +86,21 @@ public class ChatService {
      * @param handler         流式响应处理器
      * @param assembledModels 已组装好的模型配置
      * @param toolMap         工具map
-     *
+     * @param kbIndexRefs     知识库索引list
      */
     public void chatStreaming(Long memberId,
                               String sessionId,
                               String message,
                               StreamingResponseHandler handler,
                               AssembledModels assembledModels,
-                              Map<ToolSpecification, ToolExecutor> toolMap) {
+                              Map<ToolSpecification, ToolExecutor> toolMap,
+                              List<KnowledgeBaseIndexResolver.KbIndexRef> kbIndexRefs) {
         if (assembledModels == null) {
             handler.onError(new IllegalArgumentException("AssembledModels cannot be null"));
             return;
         }
 
-        AssistantUnique assistantUnique = buildAssistantUnique(memberId,assembledModels,toolMap);
+        AssistantUnique assistantUnique = buildAssistantUnique(memberId, sessionId, assembledModels, toolMap, kbIndexRefs);
 
         try {
             TokenStream tokenStream = assistantUnique.chatStreaming(sessionId, message);
@@ -118,7 +130,9 @@ public class ChatService {
     /**
      * 根据配置动态构建 AssistantUnique
      */
-    private AssistantUnique buildAssistantUnique(Long memberId, AssembledModels assembledModels, Map<ToolSpecification, ToolExecutor> toolMap) {
+    private AssistantUnique buildAssistantUnique(Long memberId, String sessionId, AssembledModels assembledModels,
+                                                 Map<ToolSpecification, ToolExecutor> toolMap,
+                                                 List<KnowledgeBaseIndexResolver.KbIndexRef> kbIndexRefs) {
         AiServices<AssistantUnique> builder = AiServices.builder(AssistantUnique.class);
 
         if (assembledModels.rag()) {
@@ -151,14 +165,8 @@ public class ChatService {
                 ragBuilder.queryTransformer(new DefaultQueryTransformer());
             }
 
-            // 动态创建 EmbeddingStore 和 ContentRetriever
-            List<String> indexNames = embeddingStoreRegistry.queryAllIndexNames();
-            Map<ContentRetriever, String> contentRetrieverMap = buildContentRetrieverMap(
-                    memberId,
-                    indexNames,
-                    assembledModels);
-
             // 配置创建合适的 QueryRouter
+            Map<ContentRetriever, String> contentRetrieverMap = buildContentRetrieverMap(memberId, kbIndexRefs, assembledModels);
             QueryRouter queryRouter;
             if (contentRetrieverMap.isEmpty()) {
                 queryRouter = new DefaultQueryRouter();
@@ -180,6 +188,7 @@ public class ChatService {
             }
 
             ragBuilder.queryRouter(queryRouter);
+            ragBuilder.contentInjector(new CapturingContentInjector(sessionId, ragSourceStore));
             builder.retrievalAugmentor(ragBuilder.build());
         }
 
@@ -233,17 +242,15 @@ public class ChatService {
                 .build();
     }
 
-
     /**
      * 构建 ContentRetriever Map
      * 为每个 ES 索引动态创建 EmbeddingStore 和 ContentRetriever
      */
     public Map<ContentRetriever, String> buildContentRetrieverMap(Long memberId,
-                                                                  List<String> indexNames,
+                                                                  List<KbIndexRef> kbIndexes,
                                                                   AssembledModels assembledModels) {
         Map<ContentRetriever, String> map = new HashMap<>();
 
-        // 从数据库查询 EmbeddingModel 配置
         if (assembledModels.embeddingModel() == null) {
             log.warn("No embedding model configured");
             return map;
@@ -260,29 +267,36 @@ public class ChatService {
             return map;
         }
 
-        // 动态创建 EmbeddingModel
         EmbeddingModel embeddingModel = modelRegistry.createEmbeddingModel(embeddingConfig);
 
-        // 为每个索引创建 EmbeddingStore 和 ContentRetriever
-        for (String indexName : indexNames) {
+        for (KbIndexRef kbIndex : kbIndexes) {
+            String indexName = kbIndex.indexName();
+            String kbName = kbIndex.displayName();
             try {
-                // 动态创建 EmbeddingStore
                 EmbeddingStore<TextSegment> embeddingStore = embeddingStoreRegistry.createEmbeddingStore(indexName);
 
-                // 创建 ContentRetriever
-                ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
+                ContentRetriever baseRetriever = EmbeddingStoreContentRetriever.builder()
                         .embeddingStore(embeddingStore)
                         .embeddingModel(embeddingModel)
                         .maxResults(assembledModels.maxResults())
                         .minScore(assembledModels.minScore())
                         .build();
 
-                map.put(contentRetriever, indexName);
+                ContentRetriever enrichedRetriever = query -> {
+                    List<Content> contents = baseRetriever.retrieve(query);
+                    contents.forEach(c -> {
+                        c.textSegment().metadata().put("indexName", indexName);
+                        c.textSegment().metadata().put("kbName", kbName);
+                    });
+                    return contents;
+                };
+
+                map.put(enrichedRetriever, kbName);
             } catch (Exception e) {
-                log.error("Failed to create ContentRetriever for index: {}", indexName, e);
+                log.error("Failed to create ContentRetriever for kb: {}", kbName, e);
             }
         }
-
         return map;
     }
+
 }

@@ -8,9 +8,11 @@ import info.mengnan.aitalk.rag.config.DefaultModelConfig;
 import info.mengnan.aitalk.kb.config.ElasticsearchProperties;
 import info.mengnan.aitalk.rag.container.assemble.AssembledModelsConstruct;
 import info.mengnan.aitalk.kb.core.DynamicEmbeddingStoreRegistry;
+import info.mengnan.aitalk.kb.core.KnowledgeBaseIndexResolver;
 import info.mengnan.aitalk.rag.container.assemble.ModelRegistry;
 import info.mengnan.aitalk.rag.container.factory.CapableModelFactory;
 import info.mengnan.aitalk.rag.service.PromptTemplateManager;
+import info.mengnan.aitalk.rag.injector.RagSourceStore;
 import info.mengnan.aitalk.rag.service.DirectModelInvoker;
 import info.mengnan.aitalk.server.service.ModelConfigService;
 import lombok.extern.slf4j.Slf4j;
@@ -80,11 +82,15 @@ public class RagConfiguration {
     public ChatService chatService(ChatMemoryStore chatMemoryStore,
                                    ModelRegistry modelRegistry,
                                    DynamicEmbeddingStoreRegistry embeddingStoreRegistry,
-                                   ModelConfigService modelConfigService) {
+                                   ModelConfigService modelConfigService,
+                                   KnowledgeBaseIndexResolver knowledgeBaseIndexResolver,
+                                   RagSourceStore ragSourceStore) {
         log.info("Creating ChatService...");
         return new ChatService(chatMemoryStore, modelRegistry,
                 embeddingStoreRegistry,
-                modelConfigService::findModel);
+                modelConfigService::findModel,
+                knowledgeBaseIndexResolver,
+                ragSourceStore);
     }
 
     /**

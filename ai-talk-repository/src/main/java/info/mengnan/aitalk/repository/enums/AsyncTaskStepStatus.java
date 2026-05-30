@@ -1,4 +1,4 @@
-package info.mengnan.aitalk.repository.async;
+package info.mengnan.aitalk.repository.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;

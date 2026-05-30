@@ -1,10 +1,10 @@
 package info.mengnan.aitalk.server.service;
 
 import info.mengnan.aitalk.common.util.JSONUtil;
-import info.mengnan.aitalk.repository.async.AsyncTaskStatus;
-import info.mengnan.aitalk.repository.async.AsyncTaskStepDetail;
-import info.mengnan.aitalk.repository.async.AsyncTaskStepStatus;
-import info.mengnan.aitalk.repository.async.AsyncTaskType;
+import info.mengnan.aitalk.repository.enums.AsyncTaskStatus;
+import info.mengnan.aitalk.repository.config.AsyncTaskStepDetail;
+import info.mengnan.aitalk.repository.enums.AsyncTaskStepStatus;
+import info.mengnan.aitalk.repository.enums.AsyncTaskType;
 import info.mengnan.aitalk.repository.entity.AsyncTask;
 import info.mengnan.aitalk.repository.repo.AsyncTaskRepository;
 import lombok.RequiredArgsConstructor;
@@ -103,13 +103,53 @@ public class AsyncTaskService {
             } else {
                 nextStatus = AsyncTaskStepStatus.PENDING;
             }
-            updated.add(new AsyncTaskStepDetail(s.step(), s.label(), nextStatus));
+            updated.add(s.withStatus(nextStatus));
         }
 
         task.setSteps(JSONUtil.toJsonStr(updated));
         task.setStatus(AsyncTaskStatus.RUNNING);
         task.setCurrentStep(step);
         asyncTaskRepository.updateById(task);
+    }
+
+    /**
+     * 标记某步骤为 running，并记录开始时间。
+     * 与 updateStepRunning 不同，此方法精确更新指定步骤并保留其他字段。
+     */
+    public void startStep(String taskId, int step) {
+        AsyncTask task = asyncTaskRepository.findByTaskId(taskId);
+        if (task == null) return;
+
+        List<AsyncTaskStepDetail> steps = parseSteps(task.getSteps());
+        List<AsyncTaskStepDetail> updated = steps.stream()
+                .map(s -> s.step() == step ? s.start() : s)
+                .collect(java.util.stream.Collectors.toList());
+
+        task.setSteps(JSONUtil.toJsonStr(updated));
+        task.setStatus(AsyncTaskStatus.RUNNING);
+        task.setCurrentStep(step);
+        asyncTaskRepository.updateById(task);
+    }
+
+    /**
+     * 标记某步骤为 completed，记录结束时间、耗时和摘要。
+     */
+    public void finishStep(String taskId, int step, java.util.Map<String, Object> summary) {
+        AsyncTask task = asyncTaskRepository.findByTaskId(taskId);
+        if (task == null) return;
+
+        List<AsyncTaskStepDetail> steps = parseSteps(task.getSteps());
+        List<AsyncTaskStepDetail> updated = steps.stream()
+                .map(s -> s.step() == step ? s.complete(summary) : s)
+                .collect(java.util.stream.Collectors.toList());
+
+        task.setSteps(JSONUtil.toJsonStr(updated));
+        asyncTaskRepository.updateById(task);
+    }
+
+    private List<AsyncTaskStepDetail> parseSteps(String stepsJson) {
+        List<AsyncTaskStepDetail> steps = JSONUtil.toList(stepsJson, AsyncTaskStepDetail.class);
+        return steps != null ? new ArrayList<>(steps) : new ArrayList<>();
     }
 
     /**
@@ -123,7 +163,7 @@ public class AsyncTaskService {
         if (steps != null && !steps.isEmpty()) {
             List<AsyncTaskStepDetail> updated = new ArrayList<>(steps.size());
             for (AsyncTaskStepDetail s : steps) {
-                updated.add(new AsyncTaskStepDetail(s.step(), s.label(), AsyncTaskStepStatus.COMPLETED));
+                updated.add(s.withStatus(AsyncTaskStepStatus.COMPLETED));
             }
             task.setSteps(JSONUtil.toJsonStr(updated));
         }

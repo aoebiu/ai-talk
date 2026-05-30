@@ -5,14 +5,20 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.rag.content.Content;
+import dev.langchain4j.rag.content.injector.ContentInjector;
+import dev.langchain4j.rag.content.injector.DefaultContentInjector;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import info.mengnan.aitalk.repository.entity.ChatMessage;
 import info.mengnan.aitalk.repository.entity.ChatMessageExtras;
+import info.mengnan.aitalk.repository.entity.ChatMessageRagSource;
+import info.mengnan.aitalk.repository.repo.ChatMessageRagSourceRepository;
 import info.mengnan.aitalk.repository.repo.ChatMessageRepository;
+import info.mengnan.aitalk.rag.injector.RagSourceStore;
 import info.mengnan.aitalk.server.core.ChatHistoryCompressing;
 import info.mengnan.aitalk.server.core.TokenCounting;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.compress.utils.Lists;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -21,14 +27,21 @@ import java.util.List;
 import java.util.Map;
 import static info.mengnan.aitalk.common.param.MessageRole.*;
 import static info.mengnan.aitalk.rag.config.DefaultModelConfig.DEFAULT_SESSION;
+import static info.mengnan.aitalk.rag.constant.promptTemplate.PromptTemplateConstant.CONTENT_INJECTION_SEPARATOR;
+import static info.mengnan.aitalk.rag.constant.promptTemplate.PromptTemplateConstant.CONTENT_INJECTOR_PROMPT_TEMPLATE;
 
 @Component
 @RequiredArgsConstructor
 public class PersistentChatMemoryStore implements ChatMemoryStore {
 
+    private static final ContentInjector CONTENT_INJECTOR =
+            new DefaultContentInjector(CONTENT_INJECTOR_PROMPT_TEMPLATE);
+
     private final ChatMessageRepository chatMessageService;
     private final ChatHistoryCompressing compressing;
     private final TokenCounting tokenCounting;
+    private final RagSourceStore ragSourceStore;
+    private final ChatMessageRagSourceRepository chatMessageRagSourceRepository;
 
     @Override
     public List<dev.langchain4j.data.message.ChatMessage> getMessages(Object memoryId) {
@@ -36,7 +49,7 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         // 查询所有消息类型
         List<ChatMessage> dbMessages = chatMessageService.findChat(sessionId);
 
-        // 找到最后一个compress消息的索引
+        // 找到最后一个 compress 消息的索引
         int lastCompressIndex = -1;
         for (int i = dbMessages.size() - 1; i >= 0; i--) {
             if (COMPRESS.equals(dbMessages.get(i).getRole())) {
@@ -45,27 +58,80 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
             }
         }
 
-        List<dev.langchain4j.data.message.ChatMessage> list = Lists.newArrayList();
-        for (int i = 0; i < dbMessages.size(); i++) {
-            ChatMessage dbMessage = dbMessages.get(i);
-            String role = dbMessage.getRole();
-
-            // 如果存在 compress：跳过其之前的 user / assistant / tool
-            if (lastCompressIndex != -1 && i < lastCompressIndex) {
-                if (USER.equals(role) || ASSISTANT.equals(role) || TOOL.equals(role)) {
-                    continue;
-                }
+        // 过滤出要发送给 LLM 的消息（从 compress 之后开始收集）
+        List<ChatMessage> filtered = new ArrayList<>();
+        if (lastCompressIndex != -1) {
+            // 从 compress 消息之后开始添加
+            for (int i = lastCompressIndex + 1; i < dbMessages.size(); i++) {
+                filtered.add(dbMessages.get(i));
             }
-
-            list.add(convertToChatMessage(dbMessage));
+        } else {
+            // 没有 compress 消息，添加所有
+            filtered.addAll(dbMessages);
         }
-        return list;
+
+        // 已关联消息 ID 的（历史对话的 RAG 内容，关联的是 ASSISTANT 消息 ID）
+        Map<Long, List<ChatMessageRagSource>> ragSourceByAssistantId = chatMessageRagSourceRepository.findGroupedByMessage(sessionId);
+        // message_id 为 null 的 pending 记录（当前最新一轮的 RAG 内容）
+        List<ChatMessageRagSource> pendingRagSources = chatMessageRagSourceRepository.findPending(sessionId);
+
+        boolean pendingRagUsed = false;
+        List<dev.langchain4j.data.message.ChatMessage> result = new ArrayList<>();
+        // 先收集所有ASSISTANT消息的RAG来源映射（按消息ID）
+        Map<Long, List<ChatMessageRagSource>> ragSourceByMessageId = new HashMap<>();
+        if (ragSourceByAssistantId != null) {
+            ragSourceByMessageId.putAll(ragSourceByAssistantId);
+        }
+
+        for (int i = 0; i < filtered.size(); i++) {
+            ChatMessage chatMessage = filtered.get(i);
+            String role = chatMessage.getRole();
+
+            if (USER.equals(role)) {
+                // 获取当前USER消息的RAG来源
+                List<ChatMessageRagSource> ragSources = null;
+
+                // 检查下一条消息是否是ASSISTANT
+                if (i + 1 < filtered.size() && ASSISTANT.equals(filtered.get(i + 1).getRole())) {
+                    // 如果下一条是ASSISTANT，获取该ASSISTANT对应的RAG来源
+                    ChatMessage nextAssistant = filtered.get(i + 1);
+                    ragSources = ragSourceByMessageId.get(nextAssistant.getId());
+                }
+                else if (i == filtered.size() - 1 ||
+                        (i + 1 < filtered.size() && !ASSISTANT.equals(filtered.get(i + 1).getRole()))) {
+                    // 如果这是最新的USER消息,使用pendingRagSources
+                    if (pendingRagSources != null && !pendingRagSources.isEmpty() && !pendingRagUsed) {
+                        ragSources = pendingRagSources;
+                        pendingRagUsed = true;
+                    }
+                }
+
+                // 如果有RAG来源,注入到USER消息中
+                dev.langchain4j.data.message.ChatMessage userMessage;
+                if (ragSources != null && !ragSources.isEmpty()) {
+                    ChatMessage enrichedUserMessage = withRagContent(chatMessage, ragSources);
+                    userMessage = convertToChatMessage(enrichedUserMessage);
+                } else {
+                    userMessage = convertToChatMessage(chatMessage);
+                }
+                result.add(userMessage);
+            }
+            else {
+                // 其他消息直接转换添加
+                dev.langchain4j.data.message.ChatMessage converted = convertToChatMessage(chatMessage);
+                result.add(converted);
+            }
+        }
+
+        return result;
     }
 
     @Override
     public void updateMessages(Object memoryId, List<dev.langchain4j.data.message.ChatMessage> messages) {
         String sessionId = memoryId.toString();
-        if (DEFAULT_SESSION.equals(sessionId)) return;
+        if (DEFAULT_SESSION.equals(sessionId)) {
+            return;
+        }
 
         dev.langchain4j.data.message.ChatMessage chatMessage = messages.get(messages.size() - 1);
         ChatMessage dbMessage = new ChatMessage();
@@ -73,27 +139,36 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
 
         if (chatMessage instanceof UserMessage msg) {
             dbMessage.setRole(USER.n());
-            dbMessage.setContent(msg.singleText());
+            String rawContent = msg.singleText();
+
+            int sepIdx = rawContent.indexOf(CONTENT_INJECTION_SEPARATOR);
+            dbMessage.setContent(sepIdx != -1 ? rawContent.substring(0, sepIdx) : rawContent);
+
             dbMessage.setExtras(buildUserExtras(msg));
+            chatMessageService.insert(dbMessage);
 
         } else if (chatMessage instanceof AiMessage msg) {
             dbMessage.setRole(ASSISTANT.n());
             String aiText = msg.text();
             dbMessage.setContent(aiText != null ? aiText : "");
             dbMessage.setExtras(buildAiExtras(msg));
+            chatMessageService.insert(dbMessage);
+
+            ragSourceStore.linkToMessage(sessionId, dbMessage.getId());
 
         } else if (chatMessage instanceof SystemMessage msg) {
             dbMessage.setRole(SYSTEM.n());
             dbMessage.setContent(msg.text());
+            chatMessageService.insert(dbMessage);
 
         } else if (chatMessage instanceof ToolExecutionResultMessage msg) {
             dbMessage.setRole(TOOL.n());
             dbMessage.setContent(msg.text());
             dbMessage.setExtras(buildToolExtras(msg));
+            chatMessageService.insert(dbMessage);
         }
-        chatMessageService.insert(dbMessage);
 
-        List<ChatMessage> chats = chatMessageService.findChatByRole(sessionId, List.of(USER.n(), ASSISTANT.n(), COMPRESS.n(), TOOL.n()));
+        List<ChatMessage> chats = chatMessageService.findChat(sessionId, List.of(USER.n(), ASSISTANT.n(), COMPRESS.n(), TOOL.n()));
         if (messages.size() > 1) {
             int summary = 0;
             for (ChatMessage chat : chats) {
@@ -107,9 +182,8 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
     }
 
     private static ChatMessageExtras buildUserExtras(UserMessage msg) {
-        if (msg.name() == null || msg.name().isBlank()) {
-            return null;
-        }
+        boolean hasName = msg.name() != null && !msg.name().isBlank();
+        if (!hasName) return null;
         ChatMessageExtras ex = new ChatMessageExtras();
         ex.setUserName(msg.name());
         return ex;
@@ -158,19 +232,38 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         return ex;
     }
 
+    private static ChatMessage withRagContent(ChatMessage original, List<ChatMessageRagSource> sources) {
+        List<Content> contents = sources.stream()
+                .map(s -> Content.from(TextSegment.from(s.getContent())))
+                .toList();
+        String text = original.getContent() != null ? original.getContent() : "";
+        ChatMessageExtras ex = original.getExtras();
+        UserMessage base = (ex != null && ex.getUserName() != null && !ex.getUserName().isBlank())
+                ? UserMessage.from(ex.getUserName(), text)
+                : UserMessage.from(text);
+        // 走与 CapturingContentInjector 完全相同的注入路径，格式由库保证一致
+        UserMessage injected = (UserMessage) CONTENT_INJECTOR.inject(contents, base);
+        ChatMessage copy = new ChatMessage();
+        copy.setId(original.getId());
+        copy.setSessionId(original.getSessionId());
+        copy.setRole(original.getRole());
+        copy.setContent(injected.singleText());
+        copy.setExtras(original.getExtras());
+        copy.setCreatedAt(original.getCreatedAt());
+        return copy;
+    }
+
     private void saveCompressedSummary(String sessionId, String summary, List<ChatMessage> originalMessages) {
         ChatMessage lastMsg = originalMessages.get(originalMessages.size() - 1);
 
-        // 创建压缩摘要消息
         ChatMessage summaryMessage = new ChatMessage();
         summaryMessage.setSessionId(sessionId);
         summaryMessage.setRole(COMPRESS.n());
 
-        // 在摘要前添加说明
         String summaryWithMeta = String.format("[历史对话摘要 - 压缩了 %d 条消息]\n%s", originalMessages.size(), summary);
         summaryMessage.setContent(summaryWithMeta);
 
-        summaryMessage.setCreatedAt(lastMsg.getCreatedAt()); // 使用最后一条消息的时间保持顺序
+        summaryMessage.setCreatedAt(lastMsg.getCreatedAt());
         chatMessageService.insert(summaryMessage);
     }
 

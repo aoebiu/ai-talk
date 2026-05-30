@@ -6,6 +6,7 @@ import lombok.Data;
 public class R {
 
     private boolean success;
+    private String code;
     private String message;
     private Object data;
 
@@ -37,6 +38,13 @@ public class R {
     public static R error(String message) {
         R r = error();
         r.setMessage(message);
+        return r;
+    }
+
+    public static R error(ErrorCode errorCode) {
+        R r = error();
+        r.setCode(errorCode.getCode());
+        r.setMessage(errorCode.getMessage());
         return r;
     }
 

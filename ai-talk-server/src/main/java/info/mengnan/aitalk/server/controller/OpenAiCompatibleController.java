@@ -1,11 +1,14 @@
 package info.mengnan.aitalk.server.controller;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.service.tool.ToolExecutor;
+import info.mengnan.aitalk.kb.core.KnowledgeBaseIndexResolver;
 import info.mengnan.aitalk.rag.container.assemble.AssembledModels;
 import info.mengnan.aitalk.rag.handler.StreamingResponseHandler;
 import info.mengnan.aitalk.repository.entity.ChatProjectApiKey;
 import info.mengnan.aitalk.repository.repo.ProjectApiKeyRepository;
+import info.mengnan.aitalk.server.core.DbKnowledgeBaseIndexResolver;
 import info.mengnan.aitalk.server.param.chat.ChatRequest;
 import info.mengnan.aitalk.rag.ChatService;
 import info.mengnan.aitalk.server.handler.OpenAiStreamingResponseHandler;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -41,6 +45,7 @@ public class OpenAiCompatibleController {
     private final ToolAdapterService toolAdapterService;
     private final ProjectApiKeyRepository projectApiKeyService;
     private final ImageProcessingService imageProcessingService;
+    private final KnowledgeBaseIndexResolver knowledgeBaseIndexResolver;
 
     /**
      * OpenAI 兼容的聊天接口
@@ -88,6 +93,7 @@ public class OpenAiCompatibleController {
                         // 从数据库查询并组装 AssembledModels
                         AssembledModels assembledModels = ragAdapterService.assembleModels(chatRequest.getOptionId());
                         Map<ToolSpecification, ToolExecutor> toolMap = toolAdapterService.dynamicTools(chatRequest.getMemberId());
+                        List<KnowledgeBaseIndexResolver.KbIndexRef> kbIndexRefs = knowledgeBaseIndexResolver.resolveActiveIndexes(chatRequest.getMemberId());
 
                         StreamingResponseHandler handler = new OpenAiStreamingResponseHandler(
                                 sink, requestId, timestamp, model);
@@ -96,7 +102,9 @@ public class OpenAiCompatibleController {
                                 chatRequest.getSessionId(),
                                 chatRequest.getMessage(),
                                 handler,
-                                assembledModels, toolMap);
+                                assembledModels,
+                                toolMap,
+                                kbIndexRefs);
                     } catch (Exception e) {
                         sink.error(e);
                     }

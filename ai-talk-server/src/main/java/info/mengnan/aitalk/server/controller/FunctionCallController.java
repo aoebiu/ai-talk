@@ -13,7 +13,7 @@ import info.mengnan.aitalk.server.param.functionCall.FunctionCallTestCaseGenerat
 import info.mengnan.aitalk.server.param.functionCall.FunctionCallTestRequest;
 import info.mengnan.aitalk.server.param.functionCall.ToolCapabilityAnalysisResult;
 import info.mengnan.aitalk.server.param.R;
-import info.mengnan.aitalk.repository.async.AsyncTaskType;
+import info.mengnan.aitalk.repository.enums.AsyncTaskType;
 import info.mengnan.aitalk.server.service.AsyncTaskService;
 import info.mengnan.aitalk.server.service.ToolAdapterService;
 import lombok.RequiredArgsConstructor;

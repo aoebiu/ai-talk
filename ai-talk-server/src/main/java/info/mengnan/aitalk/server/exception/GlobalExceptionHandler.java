@@ -17,7 +17,7 @@ public class GlobalExceptionHandler {
      * 处理Sa-Token未登录异常
      */
     @ExceptionHandler(NotLoginException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public R handleNotLoginException(NotLoginException e) {
         log.warn("not Logged In Exception: {}", e.getMessage());
         return R.error("请登录后重试");
@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
      * 处理Sa-Token其他异常
      */
     @ExceptionHandler(SaTokenException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public R handleSaTokenException(SaTokenException e) {
         log.error("Sa-Token异常: {}", e.getMessage());
         return R.error(e.getMessage());
@@ -49,6 +49,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public R handleException(BusinessException e) {
-        return R.error(e.getMessage());
+        return R.error(e.getErrorCode());
     }
 }

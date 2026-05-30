@@ -13,7 +13,7 @@ public class ChatMessageRepository {
 
     private final ChatMessageMapper mapper;
 
-    public List<ChatMessage> findChatByRole(String sessionId, List<String> roles) {
+    public List<ChatMessage> findChat(String sessionId, List<String> roles) {
         return mapper.findChatByRole(sessionId, roles);
     }
 
@@ -29,7 +29,11 @@ public class ChatMessageRepository {
         mapper.deleteBySessionId(sessionId);
     }
 
-    public void truncateMessagesFrom(String sessionId, Long messageId) {
-        mapper.truncateMessagesFrom(sessionId, messageId);
+    public void deleteByMessageIdGreaterThanOrEqual(String sessionId, Long messageId) {
+        mapper.deleteByMessageIdGreaterThanOrEqual(sessionId, messageId);
+    }
+
+    public ChatMessage findLatest(String sessionId, String role) {
+        return mapper.findLatestByRole(sessionId, role);
     }
 }

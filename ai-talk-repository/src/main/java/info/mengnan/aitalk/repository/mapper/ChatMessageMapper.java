@@ -16,7 +16,7 @@ public interface ChatMessageMapper extends BaseMapper<ChatMessage> {
                 .eq(ChatMessage::getSessionId, sessionId));
     }
 
-    default int truncateMessagesFrom(String sessionId, Long messageId) {
+    default int deleteByMessageIdGreaterThanOrEqual(String sessionId, Long messageId) {
         return delete(new LambdaQueryWrapper<ChatMessage>()
                 .eq(ChatMessage::getSessionId, sessionId)
                 .ge(ChatMessage::getId, messageId));
@@ -25,7 +25,16 @@ public interface ChatMessageMapper extends BaseMapper<ChatMessage> {
     default List<ChatMessage> findChatByRole(String sessionId, List<String> role) {
         LambdaQueryWrapper<ChatMessage> qw = new LambdaQueryWrapper<ChatMessage>()
                 .eq(ChatMessage::getSessionId, sessionId)
-                .in(role != null, ChatMessage::getRole, role);
+                .in(role != null, ChatMessage::getRole, role)
+                .orderByAsc(ChatMessage::getId);
         return selectList(qw);
+    }
+
+    default ChatMessage findLatestByRole(String sessionId, String role) {
+        return selectOne(new LambdaQueryWrapper<ChatMessage>()
+                .eq(ChatMessage::getSessionId, sessionId)
+                .eq(ChatMessage::getRole, role)
+                .orderByDesc(ChatMessage::getId)
+                .last("LIMIT 1"));
     }
 }

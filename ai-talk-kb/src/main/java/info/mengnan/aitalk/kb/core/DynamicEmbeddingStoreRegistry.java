@@ -3,6 +3,8 @@ package info.mengnan.aitalk.kb.core;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import dev.langchain4j.data.segment.TextSegment;
@@ -19,7 +21,11 @@ import org.elasticsearch.client.RestClient;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 动态 Elasticsearch 索引管理器,提供动态创建 EmbeddingStore 的能力
@@ -38,15 +44,16 @@ public class DynamicEmbeddingStoreRegistry {
     }
 
     /**
-     * 查询所有可用的 Elasticsearch 索引名称
+     * 查询指定用户的 Elasticsearch 索引名称
      *
+     * @param memberId 用户 ID，用于按用户维度过滤索引
      * @return 索引名称列表
      */
-    public List<String> queryAllIndexNames() {
+    public List<String> queryAllIndexNames(Long memberId) {
         try {
-            RestClient restClient =  createRestClient(this.properties);
-            List<String> indexNames = queryAllIndices(restClient, properties);
-            log.info("Found {} indices in Elasticsearch: {}", indexNames.size(), indexNames);
+            RestClient restClient = createRestClient(this.properties);
+            List<String> indexNames = queryAllIndices(restClient, properties, memberId);
+            log.info("Found {} indices for member {}: {}", indexNames.size(), memberId, indexNames);
             restClient.close();
             return indexNames;
         } catch (Exception e) {
@@ -106,11 +113,11 @@ public class DynamicEmbeddingStoreRegistry {
      *
      * @param indexName 索引名称
      */
+    @SuppressWarnings("resource")
     public void deleteIndex(String indexName) {
         try (RestClient restClient = createRestClient(this.properties);
              RestClientTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper())) {
             ElasticsearchClient client = new ElasticsearchClient(transport);
-
             client.indices().delete(builder -> builder.index(indexName));
             log.info("Successfully deleted index: {}", indexName);
         } catch (Exception e) {
@@ -120,28 +127,86 @@ public class DynamicEmbeddingStoreRegistry {
     }
 
     /**
-     * 查询所有 ES 索引
+     * 读取指定文档在知识库索引中的文本分块，按 segment_index 升序返回。
      */
-    private List<String> queryAllIndices(RestClient restClient, ElasticsearchProperties properties) throws IOException {
+    @SuppressWarnings({"resource", "rawtypes"})
+    public List<String> fetchDocumentSegments(String indexName, Long documentId, int maxSegments) {
+        if (maxSegments <= 0) {
+            return Collections.emptyList();
+        }
+        String docIdStr = String.valueOf(documentId);
+        try (RestClient restClient = createRestClient(this.properties);
+             RestClientTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper())) {
+            ElasticsearchClient client = new ElasticsearchClient(transport);
+            SearchResponse<Map> response = client.search(builder -> builder
+                            .index(indexName)
+                            .query(query -> query.term(term -> term
+                                    .field("metadata.document_id")
+                                    .value(docIdStr)))
+                            .size(maxSegments),
+                    Map.class);
+
+            return response.hits().hits().stream()
+                    .sorted(Comparator.comparingInt(this::extractSegmentIndex))
+                    .map(Hit::source)
+                    .map(this::extractSegmentText)
+                    .filter(text -> text != null && !text.isBlank())
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Failed to fetch document segments from index: {}, documentId={}", indexName, documentId, e);
+            throw new RuntimeException("Failed to fetch document segments from index: " + indexName, e);
+        }
+    }
+
+    /**
+     * 删除知识库索引中指定文档的全部向量分块（不删除整个索引）。
+     */
+    @SuppressWarnings("resource")
+    public void deleteDocumentSegments(String indexName, Long documentId) {
+        String docIdStr = String.valueOf(documentId);
+        try (RestClient restClient = createRestClient(this.properties);
+             RestClientTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper())) {
+            ElasticsearchClient client = new ElasticsearchClient(transport);
+            client.deleteByQuery(builder -> builder
+                    .index(indexName)
+                    .query(query -> query.term(term -> term
+                            .field("metadata.document_id")
+                            .value(docIdStr))));
+            log.info("Deleted ES segments for documentId={} in index={}", documentId, indexName);
+        } catch (Exception e) {
+            log.error("Failed to delete document segments from index: {}, documentId={}", indexName, documentId, e);
+            throw new RuntimeException("Failed to delete document segments from index: " + indexName, e);
+        }
+    }
+
+    /**
+     * 查询指定用户的 ES 索引
+     */
+    @SuppressWarnings("resource")
+    private List<String> queryAllIndices(RestClient restClient, ElasticsearchProperties properties, Long memberId) throws IOException {
         List<String> indexNames = new ArrayList<>();
 
-        // 如果配置了手动指定的索引列表，使用配置的列表
+        // 如果配置了手动指定的索引列表，按用户前缀过滤后返回
         if (!properties.getIndexNames().isEmpty()) {
-            log.info("Using manually configured index names: {}", properties.getIndexNames());
-            return new ArrayList<>(properties.getIndexNames());
+            String prefix = memberId + "_";
+            List<String> filtered = properties.getIndexNames().stream()
+                    .filter(name -> name.startsWith(prefix))
+                    .collect(Collectors.toList());
+            log.info("Using manually configured index names for member {}: {}", memberId, filtered);
+            return filtered;
         }
 
-        // 如果启用了自动发现，从 ES 查询所有索引
+        // 如果启用了自动发现，从 ES 查询索引并按用户前缀过滤
         if (properties.isAutoDiscoverIndices()) {
+            String userPrefix = memberId + "_";
             try (RestClientTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper())) {
                 ElasticsearchClient client = new ElasticsearchClient(transport);
-                // 使用 cat indices API 查询所有索引
                 IndicesResponse response = client.cat().indices();
 
                 for (IndicesRecord record : response.valueBody()) {
                     String indexName = record.index();
-                    if (indexName == null) continue;
-                    // 如果配置了索引名称过滤模式，进行过滤
+                    if (indexName == null || !indexName.startsWith(userPrefix)) continue;
+                    // 如果配置了索引名称过滤模式，进行额外过滤
                     if (properties.getIndexNamePattern() != null && !properties.getIndexNamePattern().isEmpty()) {
                         if (indexName.matches(properties.getIndexNamePattern())) {
                             indexNames.add(indexName);
@@ -154,5 +219,34 @@ public class DynamicEmbeddingStoreRegistry {
         }
 
         return indexNames;
+    }
+
+    @SuppressWarnings("rawtypes")
+    private int extractSegmentIndex(Hit<Map> hit) {
+        Map<?, ?> source = hit.source();
+        if (source == null) {
+            return Integer.MAX_VALUE;
+        }
+        Object metadataObj = source.get("metadata");
+        if (!(metadataObj instanceof Map<?, ?> metadata)) {
+            return Integer.MAX_VALUE;
+        }
+        Object indexObj = metadata.get("segment_index");
+        if (indexObj == null) {
+            return Integer.MAX_VALUE;
+        }
+        try {
+            return Integer.parseInt(indexObj.toString());
+        } catch (NumberFormatException e) {
+            return Integer.MAX_VALUE;
+        }
+    }
+
+    private String extractSegmentText(Map<?, ?> source) {
+        if (source == null) {
+            return null;
+        }
+        Object text = source.get("text");
+        return text != null ? text.toString() : null;
     }
 }

@@ -85,7 +85,6 @@ CREATE TABLE `chat_option`
     `created_at`              timestamp    NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at`              timestamp    NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_name` (`name`),
     KEY `idx_enabled` (`enabled`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
@@ -220,7 +219,6 @@ CREATE TABLE `chat_project_api_key`
     `updated_at`   timestamp    NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `deleted`      int(11)           DEFAULT '0' COMMENT '逻辑删除: 0-未删除, 1-已删除',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_api_key` (`api_key`),
     KEY `idx_member_id` (`member_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
@@ -296,9 +294,91 @@ CREATE TABLE `async_task` (
     `created_at`    timestamp    NULL     DEFAULT CURRENT_TIMESTAMP,
     `updated_at`    timestamp    NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_task_id` (`task_id`),
     KEY `idx_member_id` (`member_id`),
     KEY `idx_task_type_status` (`task_type`, `status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='通用异步任务进度表';
+
+-- ----------------------------
+-- Table structure for knowledge_base
+-- ----------------------------
+DROP TABLE IF EXISTS `knowledge_base`;
+CREATE TABLE `knowledge_base`
+(
+    `id`           bigint(20)   NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `member_id`    bigint(20)   NOT NULL COMMENT '所属用户ID',
+    `name`         varchar(100) NOT NULL COMMENT '知识库名称',
+    `description`  varchar(500)          DEFAULT NULL COMMENT '知识库描述',
+    `visibility`   varchar(20)  NOT NULL DEFAULT 'private' COMMENT '可见范围: private/public',
+    `index_name`   varchar(255) NOT NULL COMMENT 'ES 索引名，格式: {memberId}_kb_{id}',
+    `build_task_id` varchar(64)          DEFAULT NULL COMMENT '知识库构建异步任务ID',
+    `deleted`      int(11)               DEFAULT 0 COMMENT '逻辑删除: 0-未删除 1-已删除',
+    `created_at`   timestamp    NULL     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`   timestamp    NULL     DEFAULT CURRENT_TIMESTAMP
+                                      ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_index_name` (`index_name`),
+    KEY `idx_member_id` (`member_id`),
+    KEY `idx_member_deleted` (`member_id`, `deleted`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci COMMENT ='文档知识库';
+
+-- ----------------------------
+-- Table structure for document_info
+-- ----------------------------
+DROP TABLE IF EXISTS `document_info`;
+CREATE TABLE `document_info`
+(
+    `id`                  bigint(20)   NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `member_id`           bigint(20)   NOT NULL COMMENT '所属用户ID',
+    `kb_id`               bigint(20)   NOT NULL COMMENT '所属知识库ID',
+    `task_id`             varchar(64)           DEFAULT NULL COMMENT '关联 async_task.task_id',
+    `original_name`       varchar(255) NOT NULL COMMENT '用户上传的原始文件名',
+    `stored_name`         varchar(255) NOT NULL COMMENT '磁盘存储文件名（memberId_uuid_ext，防重名）',
+    `index_name`          varchar(255) NOT NULL COMMENT 'ES 索引名（与 knowledge_base.index_name 一致，一库一索引）',
+    `file_type`           varchar(20)  NOT NULL COMMENT '文件扩展名: .pdf/.docx/.pptx/.md/.txt',
+    `doc_type`            varchar(50)  NOT NULL COMMENT '文档语义类型: short_text/paper/contract/novel',
+    `file_size`           bigint(20)            DEFAULT NULL COMMENT '文件大小（字节）',
+    `cleaning_config`     text                  DEFAULT NULL COMMENT '清洗规则配置 JSON',
+    `status`              varchar(20)  NOT NULL DEFAULT 'PENDING'
+                                      COMMENT '处理状态: PENDING/PARSING/CLEANING/CHUNKING/EMBEDDING/DONE/FAILED',
+    `original_char_count` int(11)               DEFAULT NULL COMMENT '解析后原始字符数（PARSING 完成后写入）',
+    `cleaned_char_count`  int(11)               DEFAULT NULL COMMENT '清洗后字符数（CLEANING 完成后写入）',
+    `total_chunks`        int(11)               DEFAULT NULL COMMENT '分块总数（CHUNKING 完成后写入）',
+    `processed_chunks`    int(11)               DEFAULT 0   COMMENT '已向量化分块数（EMBEDDING 阶段滚动更新）',
+    `error_message`       text                  DEFAULT NULL COMMENT '最近一次失败的错误原因',
+    `deleted`             int(11)               DEFAULT 0   COMMENT '逻辑删除: 0-未删除 1-已删除',
+    `created_at`          timestamp    NULL     DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+    `updated_at`          timestamp    NULL     DEFAULT CURRENT_TIMESTAMP
+                                      ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_member_id` (`member_id`),
+    KEY `idx_kb_id` (`kb_id`),
+    KEY `idx_task_id` (`task_id`),
+    KEY `idx_kb_original` (`kb_id`, `original_name`, `deleted`),
+    KEY `idx_member_status` (`member_id`, `status`, `deleted`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci COMMENT ='文档基础信息表';
+
+-- ----------------------------
+-- Table structure for chat_message_rag_source
+-- ----------------------------
+DROP TABLE IF EXISTS `chat_message_rag_source`;
+CREATE TABLE `chat_message_rag_source`
+(
+    `id`         bigint(20)   NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `message_id` bigint(20)   DEFAULT NULL COMMENT '关联 chat_messages.id，由 updateMessages 阶段写入',
+    `session_id` varchar(255) NOT NULL COMMENT '会话ID，用于 inject → updateMessages 两阶段关联',
+    `kb_name`    varchar(255) DEFAULT NULL COMMENT '知识库名称',
+    `index_name` varchar(255) DEFAULT NULL COMMENT 'ES索引名',
+    `content`    text         NOT NULL COMMENT '命中的文本片段',
+    `created_at` timestamp    NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_message_id` (`message_id`),
+    KEY `idx_session_id` (`session_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci COMMENT ='RAG检索命中片段表';
 
 SET FOREIGN_KEY_CHECKS = 1;

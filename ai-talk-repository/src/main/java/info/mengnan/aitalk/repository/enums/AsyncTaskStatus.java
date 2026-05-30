@@ -1,4 +1,4 @@
-package info.mengnan.aitalk.repository.async;
+package info.mengnan.aitalk.repository.enums;
 
 /**
  * 异步任务整体状态，与库字段 {@code async_task.status} 一致。
