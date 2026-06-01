@@ -9,8 +9,8 @@ chmod +x mvnw
 
 ./mvnw clean
 
-rm -rf ai-talk-ui/node_modules
+rm -rf ui/node_modules
 
-rm -rf ai-talk-tool/node_modules
+rm -rf tool/node_modules
 
 echo "Clean complete!"

@@ -1,6 +1,6 @@
-# AI Talk
+# DialogerAI
 
-**AI Talk** 是一个智能对话系统，支持动态配置各种模型与工具（Tools），提供文档向量化、RAG 检索增强生成（Retrieval-Augmented Generation）以及流式对话输出功能。
+**DialogerAI** 是一个智能对话系统，支持动态配置各种模型与工具（Tools），提供文档向量化、RAG 检索增强生成（Retrieval-Augmented Generation）以及流式对话输出功能。
 
 > ⚠️ 当前项目仍在搭建中，部分功能尚不完善，但已可进行体验。
 >
@@ -40,11 +40,11 @@ sudo ${JAVA_HOME}/lib/installer/bin/gu install js
 ```
 http://localhost:7900
 ```
-2. 修改 ai-talk-server 的 `application.yaml` 中 MySQL 与 Elasticsearch 配置，或通过环境变量注入
+2. 修改 server 的 `application.yaml` 中 MySQL 与 Elasticsearch 配置，或通过环境变量注入
 3. 搭建环境（TODO 未来将支持一键 Shell 部署，并且会准备一套前端页面和对应的接口）
 4. 定位到 `sql/schema.sql`，修改 `chat_api_key` 为自己的 API Key
 5. 执行 `sql/schema.sql` 创建数据库表与初始化数据
-6. 启动 ai-talk-server
+6. 启动 server
 
 
 # Tools 配置与动态扩展方案
@@ -140,7 +140,7 @@ function execute(params) {
 
 # RAG
 
-AI Talk 提供完整的 RAG 能力，支持文档上传、智能分割、向量化存储与检索增强对话。
+DialogerAI 提供完整的 RAG 能力，支持文档上传、智能分割、向量化存储与检索增强对话。
 
 ## 核心流程
 

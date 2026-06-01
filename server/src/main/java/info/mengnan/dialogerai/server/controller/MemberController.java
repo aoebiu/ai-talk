@@ -1,0 +1,102 @@
+package info.mengnan.dialogerai.server.controller;
+
+import cn.dev33.satoken.stp.StpUtil;
+import info.mengnan.dialogerai.server.param.*;
+import info.mengnan.dialogerai.server.param.auth.*;
+import info.mengnan.dialogerai.server.service.MemberAuthService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/member")
+@RequiredArgsConstructor
+public class MemberController {
+
+    private final MemberAuthService memberAuthService;
+
+    /**
+     * 用户注册
+     */
+    @PostMapping("/register")
+    public R register(@RequestBody RegisterRequest request) {
+        memberAuthService.register(
+                request.getUsername(),
+                request.getPassword(),
+                request.getNickname(),
+                request.getPhone()
+        );
+        return R.ok();
+    }
+
+    /**
+     * 用户登录
+     */
+    @PostMapping("/login")
+    public R login(@RequestBody LoginRequest request) {
+        MemberResponse memberVO = memberAuthService.login(
+                request.getUsername(),
+                request.getPassword()
+        );
+        return R.ok(memberVO);
+    }
+
+    /**
+     * 退出登录
+     */
+    @PostMapping("/logout")
+    public R logout() {
+        StpUtil.logout();
+        return R.ok();
+    }
+
+    /**
+     * 获取当前登录用户信息
+     */
+    @GetMapping("/info")
+    public R info() {
+        MemberResponse memberVO = memberAuthService.getCurrentMemberInfo();
+        return R.ok(memberVO);
+    }
+
+    /**
+     * 更新用户信息
+     */
+    @PutMapping("/update")
+    public R update(@RequestBody UpdateMemberRequest request) {
+        memberAuthService.updateMemberInfo(
+                request.getNickname(),
+                request.getPhone(),
+                request.getAvatar()
+        );
+        return R.ok();
+    }
+
+    /**
+     * 修改密码
+     */
+    @PostMapping("/changePassword")
+    public R changePassword(@RequestBody ChangePasswordRequest request) {
+        memberAuthService.changePassword(
+                request.getOldPassword(),
+                request.getNewPassword()
+        );
+        return R.ok();
+    }
+
+    /**
+     * 获取所有用户列表
+     */
+    @GetMapping("/list")
+    public R list() {
+        return R.ok(memberAuthService.getAllMembers());
+    }
+
+    /**
+     * 删除用户
+     */
+    @PostMapping("/delete/{id}")
+    public R delete(@PathVariable("id") Long id) {
+        memberAuthService.deleteMember(id);
+        return R.ok();
+    }
+}

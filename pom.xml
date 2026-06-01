@@ -4,19 +4,19 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>info.mengnan</groupId>
-    <artifactId>ai-talk</artifactId>
+    <artifactId>dialoger-ai</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>ai-talk</name>
-    <description>ai-talk parent project</description>
+    <name>DialogerAI</name>
+    <description>DialogerAI parent project</description>
 
     <modules>
-        <module>ai-talk-common</module>
-        <module>ai-talk-repository</module>
-        <module>ai-talk-rag</module>
-        <module>ai-talk-server</module>
-        <module>ai-talk-kb</module>
-        <module>ai-talk-tool</module>
+        <module>common</module>
+        <module>repository</module>
+        <module>rag</module>
+        <module>server</module>
+        <module>kb</module>
+        <module>tool</module>
     </modules>
 
     <properties>
@@ -47,27 +47,27 @@
             <!-- Project Modules -->
             <dependency>
                 <groupId>info.mengnan</groupId>
-                <artifactId>ai-talk-common</artifactId>
+                <artifactId>common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>info.mengnan</groupId>
-                <artifactId>ai-talk-repository</artifactId>
+                <artifactId>repository</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>info.mengnan</groupId>
-                <artifactId>ai-talk-rag</artifactId>
+                <artifactId>rag</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>info.mengnan</groupId>
-                <artifactId>ai-talk-kb</artifactId>
+                <artifactId>kb</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>info.mengnan</groupId>
-                <artifactId>ai-talk-tool</artifactId>
+                <artifactId>tool</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

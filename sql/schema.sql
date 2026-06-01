@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS `ai_talk`;
-USE `ai_talk`;
+CREATE DATABASE IF NOT EXISTS `dialoger_ai`;
+USE `dialoger_ai`;
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;

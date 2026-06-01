@@ -1,0 +1,39 @@
+package info.mengnan.dialogerai.repository.mapper;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import info.mengnan.dialogerai.repository.entity.ChatToolDescription;
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface ToolDescriptionMapper extends BaseMapper<ChatToolDescription> {
+
+    @Delete("DELETE FROM chat_tool_description WHERE id = #{id}")
+    int deleteById(Long id);
+
+    default ChatToolDescription findById(Long id) {
+        return selectById(id);
+    }
+
+    default ChatToolDescription findByName(String name) {
+        LambdaQueryWrapper<ChatToolDescription> qw = new LambdaQueryWrapper<ChatToolDescription>()
+                .eq(ChatToolDescription::getName, name);
+        return selectOne(qw);
+    }
+
+    default ChatToolDescription findByNameAndMemberId(String name, Long memberId) {
+        LambdaQueryWrapper<ChatToolDescription> qw = new LambdaQueryWrapper<ChatToolDescription>()
+                .eq(ChatToolDescription::getName, name)
+                .eq(ChatToolDescription::getMemberId, memberId);
+        return selectOne(qw);
+    }
+
+    default List<ChatToolDescription> findByMemberId(Long memberId) {
+        LambdaQueryWrapper<ChatToolDescription> qw = new LambdaQueryWrapper<ChatToolDescription>()
+                .eq(ChatToolDescription::getMemberId, memberId);
+        return selectList(qw);
+    }
+}

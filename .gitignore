@@ -5,6 +5,7 @@ target/
 .DS_Store
 node_modules/
 dist/
+.vite/
 
 ### STS ###
 .apt_generated
