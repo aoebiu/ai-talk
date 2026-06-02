@@ -7,6 +7,13 @@ node_modules/
 dist/
 .vite/
 
+### Frontend (ui/) ###
+*.log
+.eslintcache
+.env.local
+.env.*.local
+yarn.lock
+
 ### STS ###
 .apt_generated
 .classpath
