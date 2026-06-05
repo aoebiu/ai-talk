@@ -17,11 +17,6 @@
 - AI 框架：LangChain4j 1.6
 - 存储与检索：Elasticsearch8.19.7、MySQL8.0.18
 
-安装 GraalJS：
-```bash
-sudo ${JAVA_HOME}/lib/installer/bin/gu install js
-```
-
 ---
 
 ### 目前支持以下模型
@@ -113,7 +108,6 @@ public class ToolDescription {
 
 下面的示例展示了一个通过内置 `http` 对象发起请求、解析结果并返回统计信息的脚本。
 
-TODO 未来会支持自然语言转JavaScripts
 
 ```js
 function execute(params) {

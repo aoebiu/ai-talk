@@ -1,0 +1,12 @@
+datasource:
+  url: jdbc:mysql://127.0.0.1:3306/dialoger_ai?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+  username: root
+  password: root
+
+elasticsearch:
+  host: 127.0.0.1
+  port: 9200
+  username:
+  password:
+
+jwt-secret-key:

@@ -14,6 +14,14 @@
     <name>server</name>
     <description>Web server for dialoger-ai project</description>
 
+    <properties>
+        <!--
+            Skip the frontend build for faster local dev iterations.
+            Usage: ./mvnw package -Dskip.ui.build=true
+        -->
+        <skip.ui.build>false</skip.ui.build>
+    </properties>
+
     <dependencies>
         <!-- Internal Module -->
         <dependency>
@@ -88,13 +96,84 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <!--
+                Frontend build output (ui/dist/) is bundled into
+                BOOT-INF/classes/static/ inside the executable fat-jar.
+                Spring Boot will serve these files as static resources.
+            -->
+            <resource>
+                <directory>../ui/dist</directory>
+                <targetPath>static</targetPath>
+            </resource>
+        </resources>
+
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
                     <mainClass>info.mengnan.dialogerai.server.DialogerAiApplication</mainClass>
                 </configuration>
+            </plugin>
+
+            <!--
+                Frontend build pipeline.
+                Phase: generate-resources (runs before process-resources copies ui/dist → static/).
+                Node runtime is installed once under the project root and reused across builds.
+            -->
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>1.15.0</version>
+                <configuration>
+                    <workingDirectory>../ui</workingDirectory>
+                    <installDirectory>${user.home}/.frontend-maven-plugin</installDirectory>
+                    <nodeVersion>v20.19.0</nodeVersion>
+                    <nodeDownloadRoot>https://registry.npmmirror.com/-/binary/node/</nodeDownloadRoot>
+                    <skip>${skip.ui.build}</skip>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>install-node-and-npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                    </execution>
+                    <execution>
+                        <id>npm-install</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-build</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <!-- build-only = vite build, skips type-check for faster CI builds -->
+                            <arguments>run build-only</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

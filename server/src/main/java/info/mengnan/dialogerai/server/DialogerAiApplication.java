@@ -1,6 +1,5 @@
 package info.mengnan.dialogerai.server;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
@@ -8,7 +7,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.env.Environment;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -52,8 +52,8 @@ public class DialogerAiApplication {
                 appName, profile, localUrl, networkUrl, port, pid, startTime);
     }
 
-    @GetMapping(value = "/", produces = "application/json")
-    public String success() {
+    @GetMapping(value = "/api/health", produces = "application/json")
+    public String health() {
         return "{\"success\":true,\"message\":\"DialogerAI started successfully!.\",\"data\":null}";
     }
 }

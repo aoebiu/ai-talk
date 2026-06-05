@@ -7,8 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.net.JarURLConnection;
 import java.net.URL;
 import java.util.*;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 /**
  * 通用模型工厂实现
@@ -80,16 +83,10 @@ public class CapableModelFactory implements ChatModelFactory,
     }
 
     private void loadFromJar(URL dirUrl, ClassLoader classLoader) {
-        try {
-            String jarPath = dirUrl.getPath();
-            // jar:file:/path/to/jar.jar!/META-INF/model-mapping
-            String jarFile = jarPath.substring(0, jarPath.indexOf("!"));
-            java.util.jar.JarFile jar = new java.util.jar.JarFile(
-                    new java.io.File(new java.net.URI(jarFile)));
-
-            Enumeration<java.util.jar.JarEntry> entries = jar.entries();
+        try (JarFile jar = openJarFile(dirUrl)) {
+            Enumeration<JarEntry> entries = jar.entries();
             while (entries.hasMoreElements()) {
-                java.util.jar.JarEntry entry = entries.nextElement();
+                JarEntry entry = entries.nextElement();
                 String name = entry.getName();
                 if (name.startsWith(MAPPING_LOCATION) && name.endsWith(".properties") && !entry.isDirectory()) {
                     try (InputStream is = classLoader.getResourceAsStream(name)) {
@@ -99,10 +96,15 @@ public class CapableModelFactory implements ChatModelFactory,
                     }
                 }
             }
-            jar.close();
         } catch (Exception e) {
             log.warn("Failed to load mappings from JAR: {}", dirUrl, e);
         }
+    }
+
+    private JarFile openJarFile(URL jarUrl) throws IOException {
+        JarURLConnection connection = (JarURLConnection) jarUrl.openConnection();
+        connection.setUseCaches(false);
+        return connection.getJarFile();
     }
 
     private void loadSingleMapping(InputStream is, String source) throws IOException {

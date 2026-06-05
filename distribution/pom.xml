@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>info.mengnan</groupId>
+        <artifactId>dialoger-ai</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>distribution</artifactId>
+    <packaging>pom</packaging>
+    <name>Dialoger AI Distribution</name>
+    <description>
+        Distribution module — assembles the Dialoger AI server into a deployable release package.
+        Contains no business logic; only assembly descriptors, startup scripts, and configuration templates.
+    </description>
+
+    <!--
+        Declare the server module as a dependency so Maven resolves its artifact
+        (the Spring Boot fat-jar) before running the assembly.
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>info.mengnan</groupId>
+            <artifactId>server</artifactId>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <!--
+            release-server: Package the full Dialoger AI Server release.
+
+            Produces:
+              target/dialoger-ai-server-{version}.tar.gz
+              target/dialoger-ai-server-{version}.zip
+
+            Usage:
+              ./mvnw clean package -Prelease-server
+        -->
+        <profile>
+            <id>release-server</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>3.6.0</version>
+                        <executions>
+                            <execution>
+                                <id>make-release-server</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                                <configuration>
+                                    <descriptors>
+                                        <descriptor>release-server.xml</descriptor>
+                                    </descriptors>
+                                    <finalName>dialoger-ai-server-${project.version}</finalName>
+                                    <appendAssemblyId>false</appendAssemblyId>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>
