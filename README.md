@@ -11,36 +11,70 @@
 如遇问题或有建议，请提交 Issue 或 联系邮箱：LTL1510@126.com
 
 ## 技术栈
-
+- 额外中间件准备Elasticsearch8.19.7、MySQL8.0.18
 - JVM 与运行环境：GraalVM 17（需安装 GraalJS）
-- 后端框架：Spring Boot 3.5.6
-- AI 框架：LangChain4j 1.6
-- 存储与检索：Elasticsearch8.19.7、MySQL8.0.18
-
----
-
-### 目前支持以下模型
-
-- 通义千问：chat、streaming_chat、embedding
-- Ollama：chat、streaming_chat、embedding
-- Cohere：scoring
-- OpenAI：moderate
-
 ---
 
 
-# 简单快速上手
 
-1. 准备第三方客户端，并配置 API 地址：
-```
-http://localhost:7900
-```
-2. 修改 server 的 `application.yaml` 中 MySQL 与 Elasticsearch 配置，或通过环境变量注入
-3. 搭建环境（TODO 未来将支持一键 Shell 部署，并且会准备一套前端页面和对应的接口）
-4. 定位到 `sql/schema.sql`，修改 `chat_api_key` 为自己的 API Key
-5. 执行 `sql/schema.sql` 创建数据库表与初始化数据
-6. 启动 server
+## 简单快速上手
 
+推荐通过发布包方式启动服务，步骤如下。
+
+### 1. 打包
+
+在项目根目录执行：
+
+```bash
+./mvnw clean package -Prelease-server
+```
+
+### 2. 解压发布包
+
+进入 `distribution` 目录，解压 `target` 下以 `dialoger-ai-server` 开头的压缩包（`.tar.gz` 或 `.zip`）：
+
+```bash
+cd distribution
+tar -xzf target/dialoger-ai-server-*.tar.gz
+# 或使用 zip：unzip target/dialoger-ai-server-*.zip
+cd dialoger-ai-server
+```
+
+### 3. 修改配置
+
+编辑 `conf/application.yaml`，按实际环境填写 MySQL、Elasticsearch 等连接信息：
+
+```yaml
+datasource:
+  url: jdbc:mysql://127.0.0.1:3306/dialoger_ai?...
+  username: root
+  password: root
+
+elasticsearch:
+  host: 127.0.0.1
+  port: 9200
+```
+
+### 4. 初始化数据库
+
+在 MySQL 中执行 `conf/mysql-schema.sql` 创建库表：
+
+```bash
+mysql -u root -p < conf/mysql-schema.sql
+```
+
+### 5. 启动服务
+
+```bash
+cd bin
+./startup.sh
+```
+
+### 6. 访问
+
+浏览器打开 [http://127.0.0.1:7900](http://127.0.0.1:7900) 即可使用。
+
+---
 
 # Tools 配置与动态扩展方案
 
