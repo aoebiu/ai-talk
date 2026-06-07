@@ -8,7 +8,6 @@ echo Stopping Dialoger AI Server on port 7900...
 
 set FOUND=0
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":7900 " ^| findstr "LISTENING"') do (
-    echo Found process PID: %%a
     taskkill /F /PID %%a
     set FOUND=1
 )

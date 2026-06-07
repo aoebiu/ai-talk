@@ -14,7 +14,7 @@ spring:
       minimum-idle: 5
       maximum-pool-size: 20
       keepalive-time: 30000
-    url: ${datasource.url:jdbc:mysql://127.0.0.1:3306/dialoger_ai?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    url: jdbc:mysql://${datasource.host:127.0.0.1}:${datasource.port:3306}/dialoger_ai?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: ${datasource.username:root}
     password: ${datasource.password:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -42,10 +42,10 @@ logging:
 
 # Elasticsearch配置
 elasticsearch:
-  host: ${elasticsearch.host:127.0.0.1}
-  port: ${elasticsearch.port:9200}
-  username: ${elasticsearch.username:}
-  password: ${elasticsearch.password:}
+  host: ${es.host:127.0.0.1}
+  port: ${es.port:9200}
+  username: ${es.username:}
+  password: ${es.password:}
 
 # 文件存储路径
 file:
