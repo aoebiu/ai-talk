@@ -1,14 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { setTokenExpiredCallback } from '@/api/request'
-import ChatView from '../views/ChatView.vue'
-import LoginView from '../views/LoginView.vue'
-import SettingsLayout from '../layouts/SettingsLayout.vue'
-import SettingsView from '../views/SettingsView.vue'
-import FunctionCallDetailView from '../views/FunctionCallDetailView.vue'
-import DocumentDetailView from '../views/DocumentDetailView.vue'
-import KnowledgeBaseCreateView from '../views/KnowledgeBaseCreateView.vue'
-import KnowledgeBaseDetailView from '../views/KnowledgeBaseDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -16,55 +8,55 @@ const router = createRouter({
     {
       path: '/',
       name: 'chat',
-      component: ChatView,
+      component: () => import('../views/ChatView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/settings',
-      component: SettingsLayout,
+      component: () => import('../layouts/SettingsLayout.vue'),
       meta: { requiresAuth: true },
       children: [
         {
           path: '',
           name: 'settings',
-          component: SettingsView,
+          component: () => import('../views/SettingsView.vue'),
         },
         {
           path: 'function/create',
           name: 'functionCallCreate',
-          component: FunctionCallDetailView,
+          component: () => import('../views/FunctionCallDetailView.vue'),
         },
         {
           path: 'function/:id',
           name: 'functionCallDetail',
-          component: FunctionCallDetailView,
+          component: () => import('../views/FunctionCallDetailView.vue'),
         },
         {
           path: 'document/:id',
           name: 'documentDetail',
-          component: DocumentDetailView,
+          component: () => import('../views/DocumentDetailView.vue'),
         },
         {
           path: 'kb/create',
           name: 'kbCreate',
-          component: KnowledgeBaseCreateView,
+          component: () => import('../views/KnowledgeBaseCreateView.vue'),
         },
         {
           path: 'kb/:kbId/upload',
           name: 'kbUpload',
-          component: KnowledgeBaseCreateView,
+          component: () => import('../views/KnowledgeBaseCreateView.vue'),
         },
         {
           path: 'kb/:kbId',
           name: 'kbDetail',
-          component: KnowledgeBaseDetailView,
+          component: () => import('../views/KnowledgeBaseDetailView.vue'),
         },
       ],
     },
     {
       path: '/login',
       name: 'login',
-      component: LoginView,
+      component: () => import('../views/LoginView.vue'),
       meta: { guest: true },
     },
   ],
