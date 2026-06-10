@@ -8,7 +8,7 @@ import info.mengnan.dialogerai.common.param.ModelType;
 import info.mengnan.dialogerai.rag.config.DefaultModelConfig;
 import info.mengnan.dialogerai.rag.config.ModelConfig;
 import info.mengnan.dialogerai.rag.constant.promptTemplate.PromptTemplateConstant;
-import info.mengnan.dialogerai.rag.container.assemble.ModelRegistry;
+import info.mengnan.dialogerai.rag.container.factory.UniversalModelFactory;
 import info.mengnan.dialogerai.repository.entity.ChatMessage;
 import info.mengnan.dialogerai.repository.entity.ChatSession;
 import info.mengnan.dialogerai.repository.repo.ChatSessionRepository;
@@ -33,7 +33,7 @@ import static info.mengnan.dialogerai.common.param.MessageRole.USER;
 public class ChatHistoryCompressing {
 
     private final PromptTemplate promptTemplate;
-    private final ModelRegistry modelRegistry;
+    private final UniversalModelFactory modelFactory;
     private final ModelConfigService modelConfigService;
     private final ChatSessionRepository chatSessionService;
     private final DefaultModelConfig defaultModelConfig;
@@ -41,12 +41,12 @@ public class ChatHistoryCompressing {
     public ChatHistoryCompressing(@Qualifier("compressingPrompt")
                                   @Autowired(required = false)
                                   PromptTemplate promptTemplate,
-                                  ModelRegistry modelRegistry,
+                                  UniversalModelFactory modelFactory,
                                   ModelConfigService modelConfigService,
                                   ChatSessionRepository chatSessionService,
                                   DefaultModelConfig defaultModelConfig) {
         this.promptTemplate = promptTemplate != null ? promptTemplate : PromptTemplateConstant.COMPRESSION_PROMPT_TEMPLATE;
-        this.modelRegistry = modelRegistry;
+        this.modelFactory = modelFactory;
         this.modelConfigService = modelConfigService;
         this.chatSessionService = chatSessionService;
         this.defaultModelConfig = defaultModelConfig;
@@ -57,7 +57,7 @@ public class ChatHistoryCompressing {
         if (chatConfig == null) {
             throw new RuntimeException("压缩模型配置不存在: " + defaultModelConfig.getCompressModelName());
         }
-        return modelRegistry.createChatModel(chatConfig);
+        return modelFactory.createChatModel(chatConfig);
     }
 
     /**

@@ -9,8 +9,8 @@ import info.mengnan.dialogerai.kb.config.ElasticsearchProperties;
 import info.mengnan.dialogerai.rag.container.assemble.AssembledModelsConstruct;
 import info.mengnan.dialogerai.kb.core.DynamicEmbeddingStoreRegistry;
 import info.mengnan.dialogerai.kb.core.KnowledgeBaseIndexResolver;
-import info.mengnan.dialogerai.rag.container.assemble.ModelRegistry;
 import info.mengnan.dialogerai.rag.container.factory.CapableModelFactory;
+import info.mengnan.dialogerai.rag.container.factory.UniversalModelFactory;
 import info.mengnan.dialogerai.rag.service.PromptTemplateManager;
 import info.mengnan.dialogerai.rag.injector.RagSourceStore;
 import info.mengnan.dialogerai.rag.service.DirectModelInvoker;
@@ -42,17 +42,9 @@ public class RagConfiguration {
      * 创建CapableModelFactory
      */
     @Bean
-    public CapableModelFactory createModelFactory() {
+    public UniversalModelFactory createModelFactory() {
         log.info("Creating CapableModelFactory...");
         return new CapableModelFactory();
-    }
-
-    /**
-     * 创建并初始化ModelRegistry
-     */
-    @Bean
-    public ModelRegistry modelRegistry(CapableModelFactory factory) {
-        return new ModelRegistry(factory);
     }
 
     /**
@@ -80,13 +72,13 @@ public class RagConfiguration {
      */
     @Bean
     public ChatService chatService(ChatMemoryStore chatMemoryStore,
-                                   ModelRegistry modelRegistry,
+                                   UniversalModelFactory modelFactory,
                                    DynamicEmbeddingStoreRegistry embeddingStoreRegistry,
                                    ModelConfigService modelConfigService,
                                    KnowledgeBaseIndexResolver knowledgeBaseIndexResolver,
                                    RagSourceStore ragSourceStore) {
         log.info("Creating ChatService...");
-        return new ChatService(chatMemoryStore, modelRegistry,
+        return new ChatService(chatMemoryStore, modelFactory,
                 embeddingStoreRegistry,
                 modelConfigService::findModel,
                 knowledgeBaseIndexResolver,
@@ -113,11 +105,11 @@ public class RagConfiguration {
     }
 
     @Bean
-    public DirectModelInvoker DirectModelInvoker(ModelRegistry modelRegistry,
+    public DirectModelInvoker directModelInvoker(UniversalModelFactory modelFactory,
                                                  ModelConfigService modelConfigService,
                                                  DefaultModelConfig modelConfig,
                                                  PromptTemplateManager promptTemplateManager) {
-        return new DirectModelInvoker(modelRegistry, modelConfigService::findModel,
+        return new DirectModelInvoker(modelFactory, modelConfigService::findModel,
                 promptTemplateManager, modelConfig);
     }
 

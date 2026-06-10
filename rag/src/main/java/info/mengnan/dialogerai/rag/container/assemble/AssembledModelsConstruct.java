@@ -2,13 +2,13 @@ package info.mengnan.dialogerai.rag.container.assemble;
 
 import info.mengnan.dialogerai.rag.config.ChatOptionConfig;
 import info.mengnan.dialogerai.rag.config.ModelConfig;
+import info.mengnan.dialogerai.common.param.ModelType;
 
 import java.util.List;
 
 /**
  * 模型组装器
  * 根据传入的配置数据组装 AssembledModels
- * 不进行任何数据库查询操作
  */
 public class AssembledModelsConstruct {
 
@@ -39,24 +39,14 @@ public class AssembledModelsConstruct {
                 continue;
             }
 
-            switch (modelConfig.getKeyType().toLowerCase()) {
-                case "chat":
-                    chatModel = modelConfig;
-                    break;
-                case "streaming_chat":
-                    streamingChatModel = modelConfig;
-                    break;
-                case "embedding":
-                    embeddingModel = modelConfig;
-                    break;
-                case "scoring":
-                    scoringModel = modelConfig;
-                    break;
-                case "moderation":
-                    moderationModel = modelConfig;
-                    break;
-                default:
-                    break;
+            ModelType keyType = ModelType.valueOf(modelConfig.getKeyType().toUpperCase());
+            switch (keyType) {
+                case CHAT -> chatModel = modelConfig;
+                case STREAMING_CHAT -> streamingChatModel = modelConfig;
+                case EMBEDDING -> embeddingModel = modelConfig;
+                case SCORING -> scoringModel = modelConfig;
+                case MODERATE -> moderationModel = modelConfig;
+                default -> {}
             }
         }
 

@@ -1,6 +1,10 @@
 package info.mengnan.dialogerai.rag.config;
 
+import info.mengnan.dialogerai.common.json.JSONObject;
 import lombok.Data;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 模型配置
@@ -18,6 +22,11 @@ public class ModelConfig {
     private String apiKey;
 
     /**
+     * 基础 URL
+     */
+    private String baseUrl;
+
+    /**
      * 模型提供商 (例如: dashscope, ollama, onnx)
      */
     private String modelProvider;
@@ -26,6 +35,11 @@ public class ModelConfig {
      * 模型类型 (例如: chat, streaming_chat, embedding, scoring)
      */
     private String keyType;
+
+    /**
+     * 模型调参参数
+     */
+    private JSONObject params = new JSONObject();
 
     public ModelConfig() {
     }

@@ -7,13 +7,15 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * 异步配置：启用 @Async 注解，并为文档处理流水线提供专用线程池。
  */
 @Configuration
 @EnableAsync
-public class AsyncConfig {
+public class AsyncConfig implements WebMvcConfigurer {
 
     /**
      * 文档处理专用线程池。
@@ -29,5 +31,16 @@ public class AsyncConfig {
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
         return executor;
+    }
+
+    @Override
+    public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(50);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("async-worker-");
+        executor.initialize();
+        configurer.setTaskExecutor(executor);
     }
 }

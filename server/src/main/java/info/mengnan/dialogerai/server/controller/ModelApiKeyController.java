@@ -1,6 +1,7 @@
 package info.mengnan.dialogerai.server.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
+import info.mengnan.dialogerai.common.util.JSONUtil;
 import info.mengnan.dialogerai.repository.entity.ChatApiKey;
 import info.mengnan.dialogerai.repository.repo.ChatApiKeyRepository;
 import info.mengnan.dialogerai.server.param.R;
@@ -51,7 +52,12 @@ public class ModelApiKeyController {
     public R createApiKey(@RequestParam(name = "modelName") String modelName,
                           @RequestParam(name = "modelProvider") String modelProvider,
                           @RequestParam(name = "keyType") String keyType,
-                          @RequestParam(name = "apiKey") String apiKey) {
+                          @RequestParam(name = "apiKey") String apiKey,
+                          @RequestParam(name = "param", required = false) String param) {
+
+        if (param != null && !param.isBlank() && !JSONUtil.isJsonObj(param)) {
+            return R.error("param 必须是合法的 JSON 对象");
+        }
 
         Long memberId = StpUtil.getLoginIdAsLong();
 

@@ -213,6 +213,16 @@ public class JSONObject implements Map<String, Object> {
         return value != null ? value : defaultValue;
     }
 
+    public Float getFloat(String key) {
+        JsonNode valueNode = node.get(key);
+        return valueNode != null && !valueNode.isNull() ? valueNode.floatValue() : null;
+    }
+
+    public Float getFloat(String key, Float defaultValue) {
+        Float value = getFloat(key);
+        return value != null ? value : defaultValue;
+    }
+
     /**
      * 获取布尔值
      *

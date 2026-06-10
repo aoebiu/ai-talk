@@ -32,6 +32,11 @@ public class ModelApiKeyResponse {
     private String maskedApiKey;
 
     /**
+     * 模型调参参数 JSON (例如: temperature, topP, maxTokens)
+     */
+    private String param;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createdAt;

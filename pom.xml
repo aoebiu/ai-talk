@@ -26,8 +26,8 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <spring-boot.version>3.2.5</spring-boot.version>
-        <langchain4j.version>1.6.0</langchain4j.version>
-        <langchain4j.other.version>1.6.0-beta12</langchain4j.other.version>
+        <langchain4j.version>1.12.2</langchain4j.version>
+        <langchain4j.other.version>1.12.2-beta22</langchain4j.other.version>
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <elasticsearch.version>8.17.4</elasticsearch.version>
         <lombok.version>1.18.34</lombok.version>
@@ -112,6 +112,13 @@
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-dashscope</artifactId>
                 <version>${langchain4j.other.version}</version>
+            </dependency>
+
+            <!-- LangChain4j Ollama -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-ollama</artifactId>
+                <version>${langchain4j.version}</version>
             </dependency>
 
             <!-- LangChain4j openai -->

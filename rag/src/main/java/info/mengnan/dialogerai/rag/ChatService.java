@@ -33,7 +33,7 @@ import info.mengnan.dialogerai.kb.core.KnowledgeBaseIndexResolver.KbIndexRef;
 import info.mengnan.dialogerai.rag.config.ModelConfig;
 import info.mengnan.dialogerai.rag.handler.StreamingResponseHandler;
 import info.mengnan.dialogerai.rag.container.assemble.AssembledModels;
-import info.mengnan.dialogerai.rag.container.assemble.ModelRegistry;
+import info.mengnan.dialogerai.rag.container.factory.UniversalModelFactory;
 import info.mengnan.dialogerai.rag.service.ModelConfigProvider;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,20 +52,20 @@ import static info.mengnan.dialogerai.rag.constant.promptTemplate.PromptTemplate
 @Slf4j
 public class ChatService {
     private final ChatMemoryStore chatMemoryStore;
-    private final ModelRegistry modelRegistry;
+    private final UniversalModelFactory modelFactory;
     private final DynamicEmbeddingStoreRegistry embeddingStoreRegistry;
     private final ModelConfigProvider modelConfigProvider;
     private final KnowledgeBaseIndexResolver knowledgeBaseIndexResolver;
     private final RagSourceStore ragSourceStore;
 
     public ChatService(ChatMemoryStore chatMemoryStore,
-                       ModelRegistry modelRegistry,
+                       UniversalModelFactory modelFactory,
                        DynamicEmbeddingStoreRegistry embeddingStoreRegistry,
                        ModelConfigProvider modelConfigProvider,
                        KnowledgeBaseIndexResolver knowledgeBaseIndexResolver,
                        RagSourceStore ragSourceStore) {
         this.chatMemoryStore = chatMemoryStore;
-        this.modelRegistry = modelRegistry;
+        this.modelFactory = modelFactory;
         this.embeddingStoreRegistry = embeddingStoreRegistry;
         this.modelConfigProvider = modelConfigProvider;
         this.knowledgeBaseIndexResolver = knowledgeBaseIndexResolver;
@@ -149,7 +149,7 @@ public class ChatService {
                             SCORING);
 
                     if (scoringConfig != null) {
-                        ScoringModel scoringModel = modelRegistry.createScoringModel(scoringConfig);
+                        ScoringModel scoringModel = modelFactory.createScoringModel(scoringConfig);
                         contentAggregator = ReRankingContentAggregator.builder()
                                 .scoringModel(scoringModel)
                                 .querySelector(queryToContents -> queryToContents.entrySet().iterator().next().getKey())
@@ -179,7 +179,7 @@ public class ChatService {
                         CHAT);
 
                 if (chatConfig != null) {
-                    ChatModel chatModel = modelRegistry.createChatModel(chatConfig);
+                    ChatModel chatModel = modelFactory.createChatModel(chatConfig);
                     queryRouter = new LanguageModelQueryRouter(chatModel, contentRetrieverMap,
                             QUERY_ROUTER_PROMPT_TEMPLATE, DO_NOT_ROUTE);
                 } else {
@@ -199,7 +199,7 @@ public class ChatService {
                     STREAMING_CHAT);
 
             if (streamingChatConfig != null) {
-                StreamingChatModel streamingChatModel = modelRegistry.createStreamingChatModel(streamingChatConfig);
+                StreamingChatModel streamingChatModel = modelFactory.createStreamingChatModel(streamingChatConfig);
                 builder.streamingChatModel(streamingChatModel);
             }
         }
@@ -211,7 +211,7 @@ public class ChatService {
                     CHAT);
 
             if (chatConfig != null) {
-                ChatModel chatModel = modelRegistry.createChatModel(chatConfig);
+                ChatModel chatModel = modelFactory.createChatModel(chatConfig);
                 builder.chatModel(chatModel);
             }
         }
@@ -223,7 +223,7 @@ public class ChatService {
                     MODERATE);
 
             if (moderateConfig != null) {
-                ModerationModel moderationModel = modelRegistry.createModerationModel(moderateConfig);
+                ModerationModel moderationModel = modelFactory.createModerationModel(moderateConfig);
                 builder.moderationModel(moderationModel);
             } else {
                 builder.moderationModel(new DisabledModerationModel());
@@ -267,7 +267,7 @@ public class ChatService {
             return map;
         }
 
-        EmbeddingModel embeddingModel = modelRegistry.createEmbeddingModel(embeddingConfig);
+        EmbeddingModel embeddingModel = modelFactory.createEmbeddingModel(embeddingConfig);
 
         for (KbIndexRef kbIndex : kbIndexes) {
             String indexName = kbIndex.indexName();

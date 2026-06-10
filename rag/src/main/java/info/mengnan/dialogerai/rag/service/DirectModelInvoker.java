@@ -10,7 +10,7 @@ import dev.langchain4j.model.input.Prompt;
 import info.mengnan.dialogerai.common.param.ModelType;
 import info.mengnan.dialogerai.rag.config.DefaultModelConfig;
 import info.mengnan.dialogerai.rag.config.ModelConfig;
-import info.mengnan.dialogerai.rag.container.assemble.ModelRegistry;
+import info.mengnan.dialogerai.rag.container.factory.UniversalModelFactory;
 import info.mengnan.dialogerai.rag.container.factory.ModelTypeMapper;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,7 +25,7 @@ import java.util.function.Supplier;
 @Slf4j
 public class DirectModelInvoker {
 
-    private final ModelRegistry modelRegistry;
+    private final UniversalModelFactory modelFactory;
     private final ModelConfigProvider modelConfigProvider;
     private final PromptTemplateManager promptTemplateManager;
     private final DefaultModelConfig defaultModelConfig;
@@ -35,11 +35,11 @@ public class DirectModelInvoker {
     private static final long BACKOFF_DELAY_MS = 1000L;
     private static final double BACKOFF_MULTIPLIER = 2.0;
 
-    public DirectModelInvoker(ModelRegistry modelRegistry,
+    public DirectModelInvoker(UniversalModelFactory modelFactory,
                               ModelConfigProvider modelConfigProvider,
                               PromptTemplateManager promptTemplateManager,
                               DefaultModelConfig defaultModelConfig) {
-        this.modelRegistry = modelRegistry;
+        this.modelFactory = modelFactory;
         this.modelConfigProvider = modelConfigProvider;
         this.promptTemplateManager = promptTemplateManager;
         this.defaultModelConfig = defaultModelConfig;
@@ -196,7 +196,7 @@ public class DirectModelInvoker {
     public <T> T getModel(ModelConfig modelConfig, Class<T> modelClass) {
         try {
             ModelTypeMapper mapper = ModelTypeMapper.findByClass(modelClass);
-            return mapper.create(modelRegistry, modelConfig);
+            return mapper.create(modelFactory, modelConfig);
         } catch (Exception e) {
             log.error("Failed to create model: {}", modelConfig.getModelName(), e);
             throw new RuntimeException("Failed to create model: " + e.getMessage(), e);

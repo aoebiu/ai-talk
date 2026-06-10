@@ -21,15 +21,12 @@ import java.util.jar.JarFile;
  * 新增 Provider 只需在 classpath 中添加对应的 properties 文件，无需编写 Java 代码。
  */
 @Slf4j
-public class CapableModelFactory implements ChatModelFactory,
-                                            EmbeddingModelFactory,
-                                            ScoringModelFactory,
-                                            ModerationModelFactory,
-                                            ImageModelFactory {
+public class CapableModelFactory implements UniversalModelFactory {
 
     private static final String MAPPING_LOCATION = "META-INF/model-mapping/";
 
     private final Map<String, Map<ModelType, String>> modelClassMapping = new HashMap<>();
+    private final Map<String, ModelFactory> modelFactories = new HashMap<>();
 
     public CapableModelFactory() {
         loadMappings();
@@ -37,15 +34,8 @@ public class CapableModelFactory implements ChatModelFactory,
 
     private void loadMappings() {
         try {
-            Thread.currentThread().getContextClassLoader().getResources(MAPPING_LOCATION);
-
-        } catch (IOException e) {
-            log.warn("Failed to scan model-mapping directory", e);
-        }
-
-        try {
             ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-            Enumeration<URL> allResources = classLoader.getResources("META-INF/model-mapping");
+            Enumeration<URL> allResources = classLoader.getResources(MAPPING_LOCATION);
 
             while (allResources.hasMoreElements()) {
                 URL dirUrl = allResources.nextElement();
@@ -124,17 +114,41 @@ public class CapableModelFactory implements ChatModelFactory,
                 typeMapping.put(modelType, className.trim());
             }
         }
-
         modelClassMapping.put(providerCode, typeMapping);
+
+        String applierClassName = props.getProperty("paramApplier");
+        if (applierClassName != null && !applierClassName.isBlank()) {
+            try {
+                Class<?> applierClass = Class.forName(applierClassName.trim());
+                ModelFactory factory = (ModelFactory) applierClass.getDeclaredConstructor().newInstance();
+                modelFactories.put(providerCode, factory);
+            } catch (Exception e) {
+                log.warn("Failed to load ParamApplier '{}' for provider '{}': {}",
+                        applierClassName, providerCode, e.getMessage());
+            }
+        }
+
         log.info("Loaded model mapping for provider: {} from {} (types: {})",
                 providerCode, source, typeMapping.keySet());
     }
 
     @Override
     public Object createModel(ModelConfig modelConfig, ModelType modelType) {
-        try {
-            String providerCode = modelConfig.getModelProvider();
+        String providerCode = modelConfig.getModelProvider();
 
+        // 优先委托给各 Provider 的 ModelFactory，由其负责完整的模型构建与参数注入
+        ModelFactory factory = modelFactories.get(providerCode);
+        if (factory != null) {
+            log.info("Creating {} model for provider '{}' via ModelFactory", modelType, providerCode);
+            return factory.createModel(modelConfig, modelType);
+        }
+
+        // 暂时不支持的模型通过反射方式
+        return createModelByReflection(modelConfig, modelType, providerCode);
+    }
+
+    private Object createModelByReflection(ModelConfig modelConfig, ModelType modelType, String providerCode) {
+        try {
             Map<ModelType, String> providerModels = modelClassMapping.get(providerCode);
             if (providerModels == null) {
                 throw new UnsupportedOperationException(
@@ -147,15 +161,11 @@ public class CapableModelFactory implements ChatModelFactory,
                         "Model type '" + modelType + "' is not supported for provider: " + providerCode);
             }
 
-            // 动态加载类
             Class<?> modelClass = Class.forName(className);
-
-            // 获取 builder() 方法
             Method builderMethod = modelClass.getMethod("builder");
             Object builder = builderMethod.invoke(null);
             Class<?> builderClass = builder.getClass();
 
-            // 设置 apiKey（如果该方法存在）
             try {
                 Method apiKeyMethod = builderClass.getMethod("apiKey", String.class);
                 builder = apiKeyMethod.invoke(builder, modelConfig.getApiKey());
@@ -163,7 +173,6 @@ public class CapableModelFactory implements ChatModelFactory,
                 log.debug("Model {} does not have apiKey method, skipping", className);
             }
 
-            // 设置 modelName（如果该方法存在）
             try {
                 Method modelNameMethod = builderClass.getMethod("modelName", String.class);
                 builder = modelNameMethod.invoke(builder, modelConfig.getModelName());
@@ -171,9 +180,7 @@ public class CapableModelFactory implements ChatModelFactory,
                 log.debug("Model {} does not have modelName method, skipping", className);
             }
 
-            // 调用 build() 方法
-            Method buildMethod = builderClass.getMethod("build");
-            Object model = buildMethod.invoke(builder);
+            Object model = builderClass.getMethod("build").invoke(builder);
 
             log.info("Successfully created {} model: {} (provider: {}, modelName: {})",
                     modelType, className, providerCode, modelConfig.getModelName());

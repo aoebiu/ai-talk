@@ -7,7 +7,7 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import info.mengnan.dialogerai.common.param.ModelType;
 import info.mengnan.dialogerai.kb.core.DynamicEmbeddingStoreRegistry;
 import info.mengnan.dialogerai.rag.config.ModelConfig;
-import info.mengnan.dialogerai.rag.container.assemble.ModelRegistry;
+import info.mengnan.dialogerai.rag.container.factory.UniversalModelFactory;
 import info.mengnan.dialogerai.repository.entity.DocumentInfo;
 import info.mengnan.dialogerai.repository.enums.DocumentStatus;
 import info.mengnan.dialogerai.repository.repo.DocumentInfoRepository;
@@ -35,7 +35,7 @@ import java.util.List;
 public class EmbeddingListener {
 
     private final DynamicEmbeddingStoreRegistry embeddingStoreRegistry;
-    private final ModelRegistry modelRegistry;
+    private final UniversalModelFactory modelFactory;
     private final ModelConfigService modelConfigService;
     private final DocumentInfoRepository documentInfoRepository;
     private final DocumentProcessService documentProcessService;
@@ -62,7 +62,7 @@ public class EmbeddingListener {
                 throw new RuntimeException("Embedding 模型配置不存在：" + embeddingModelName);
             }
 
-            EmbeddingModel embeddingModel = modelRegistry.createEmbeddingModel(embeddingConfig);
+            EmbeddingModel embeddingModel = modelFactory.createEmbeddingModel(embeddingConfig);
             EmbeddingStore<TextSegment> embeddingStore =
                     embeddingStoreRegistry.createEmbeddingStore(event.getIndexName());
 

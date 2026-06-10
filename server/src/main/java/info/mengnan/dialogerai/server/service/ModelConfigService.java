@@ -1,6 +1,7 @@
 package info.mengnan.dialogerai.server.service;
 
 import info.mengnan.dialogerai.common.param.ModelType;
+import info.mengnan.dialogerai.common.util.JSONUtil;
 import info.mengnan.dialogerai.rag.config.ModelConfig;
 import info.mengnan.dialogerai.repository.entity.ChatApiKey;
 import info.mengnan.dialogerai.repository.repo.ChatApiKeyRepository;
@@ -8,7 +9,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 模型配置服务
@@ -62,4 +65,5 @@ public class ModelConfigService {
         config.setKeyType(apiKey.getKeyType());
         return config;
     }
+
 }

@@ -1,5 +1,6 @@
 package info.mengnan.dialogerai.server.service;
 
+import info.mengnan.dialogerai.common.util.JSONUtil;
 import info.mengnan.dialogerai.rag.container.assemble.AssembledModels;
 import info.mengnan.dialogerai.rag.container.assemble.AssembledModelsConstruct;
 import info.mengnan.dialogerai.rag.config.ChatOptionConfig;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -91,5 +93,12 @@ public class RagAdapterService {
         config.setModelProvider(apiKey.getModelProvider());
         config.setKeyType(apiKey.getKeyType());
         return config;
+    }
+
+    private Map<String, Object> parseParams(String paramJson) {
+        if (paramJson == null || paramJson.isBlank()) {
+            return new HashMap<>();
+        }
+        return JSONUtil.parseObj(paramJson);
     }
 }
