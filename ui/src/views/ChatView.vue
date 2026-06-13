@@ -168,17 +168,26 @@ import { useThemeStore } from '@/stores/theme'
 import { useConversationStore } from '@/stores/conversation'
 import type { RagSource } from '@/stores/conversation'
 import { marked } from 'marked'
+import hljs from 'highlight.js/lib/common'
 import { createChat, chatStream, getHistory, getSessions, deleteSession, getRagSourcesLatest, getRagSources } from '@/api/chat'
 import type { HistoryMessage, HistoryData, HistoryResponse, SessionItem } from '@/api/chat'
 
 marked.setOptions({ gfm: true, breaks: true })
 
+const COPY_BTN = `<button class="copy-code-btn" type="button" title="复制代码"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>`
+
 const renderer = new marked.Renderer()
-const originalCode = renderer.code.bind(renderer)
-renderer.code = function (token) {
-  const html = originalCode(token)
-  return `<div class="code-block-wrapper">${html}<button class="copy-code-btn" type="button" title="复制代码">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>`
+renderer.code = function ({ text, lang }: { text: string; lang?: string }) {
+  let highlighted: string
+  let langClass: string
+  if (lang && hljs.getLanguage(lang)) {
+    highlighted = hljs.highlight(text, { language: lang }).value
+    langClass = `hljs language-${lang}`
+  } else {
+    highlighted = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    langClass = 'hljs'
+  }
+  return `<div class="code-block-wrapper"><pre><code class="${langClass}">${highlighted}</code></pre>${COPY_BTN}</div>`
 }
 
 function completeMarkdown(text: string): string {

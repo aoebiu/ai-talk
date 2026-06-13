@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => ({
             '@codemirror/theme-one-dark',
           ],
           marked: ['marked'],
+          'highlight.js': ['highlight.js'],
           'js-beautify': ['js-beautify'],
         },
       },
