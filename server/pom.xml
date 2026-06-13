@@ -16,10 +16,11 @@
 
     <properties>
         <!--
-            Skip the frontend build for faster local dev iterations.
-            Usage: ./mvnw package -Dskip.ui.build=true
+            Frontend build is skipped by default for faster local dev iterations.
+            Enabled automatically when building with -Prelease-server.
+            To force a frontend build: ./mvnw package -Dskip.ui.build=false
         -->
-        <skip.ui.build>false</skip.ui.build>
+        <skip.ui.build>true</skip.ui.build>
     </properties>
 
     <dependencies>
@@ -100,15 +101,6 @@
             <resource>
                 <directory>src/main/resources</directory>
             </resource>
-            <!--
-                Frontend build output (ui/dist/) is bundled into
-                BOOT-INF/classes/static/ inside the executable fat-jar.
-                Spring Boot will serve these files as static resources.
-            -->
-            <resource>
-                <directory>../ui/dist</directory>
-                <targetPath>static</targetPath>
-            </resource>
         </resources>
 
         <plugins>
@@ -177,5 +169,35 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+            release-server: Enable frontend build when assembling a release package.
+            Activated alongside the same-named profile in the distribution module via:
+              ./mvnw clean package -Prelease-server
+        -->
+        <profile>
+            <id>release-server</id>
+            <properties>
+                <skip.ui.build>false</skip.ui.build>
+            </properties>
+            <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                    </resource>
+                    <!--
+                        Frontend build output (ui/dist/) is bundled into
+                        BOOT-INF/classes/static/ inside the executable fat-jar.
+                        Spring Boot will serve these files as static resources.
+                    -->
+                    <resource>
+                        <directory>../ui/dist</directory>
+                        <targetPath>static</targetPath>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
