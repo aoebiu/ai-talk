@@ -8,17 +8,20 @@ import info.mengnan.dialogerai.rag.config.DefaultModelConfig;
 import info.mengnan.dialogerai.kb.config.ElasticsearchProperties;
 import info.mengnan.dialogerai.rag.container.assemble.AssembledModelsConstruct;
 import info.mengnan.dialogerai.kb.core.DynamicEmbeddingStoreRegistry;
-import info.mengnan.dialogerai.kb.core.KnowledgeBaseIndexResolver;
 import info.mengnan.dialogerai.rag.container.factory.CapableModelFactory;
 import info.mengnan.dialogerai.rag.container.factory.UniversalModelFactory;
 import info.mengnan.dialogerai.rag.service.PromptTemplateManager;
 import info.mengnan.dialogerai.rag.injector.RagSourceStore;
 import info.mengnan.dialogerai.rag.service.DirectModelInvoker;
+import info.mengnan.dialogerai.rag.service.SingleModelConfigProvider;
 import info.mengnan.dialogerai.server.service.ModelConfigService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.concurrent.Executor;
 
 
 /**
@@ -75,14 +78,15 @@ public class RagConfiguration {
                                    UniversalModelFactory modelFactory,
                                    DynamicEmbeddingStoreRegistry embeddingStoreRegistry,
                                    ModelConfigService modelConfigService,
-                                   KnowledgeBaseIndexResolver knowledgeBaseIndexResolver,
-                                   RagSourceStore ragSourceStore) {
+                                   RagSourceStore ragSourceStore,
+                                   @Qualifier("ragExecutor") Executor ragExecutor) {
         log.info("Creating ChatService...");
-        return new ChatService(chatMemoryStore, modelFactory,
+        return new ChatService(chatMemoryStore,
+                modelFactory,
                 embeddingStoreRegistry,
-                modelConfigService::findModel,
-                knowledgeBaseIndexResolver,
-                ragSourceStore);
+                modelConfigService::loadModelConfigs,
+                ragSourceStore,
+                ragExecutor);
     }
 
     /**
@@ -109,8 +113,7 @@ public class RagConfiguration {
                                                  ModelConfigService modelConfigService,
                                                  DefaultModelConfig modelConfig,
                                                  PromptTemplateManager promptTemplateManager) {
-        return new DirectModelInvoker(modelFactory, modelConfigService::findModel,
-                promptTemplateManager, modelConfig);
+        return new DirectModelInvoker(modelFactory, modelConfigService::findModel, promptTemplateManager, modelConfig);
     }
 
 }

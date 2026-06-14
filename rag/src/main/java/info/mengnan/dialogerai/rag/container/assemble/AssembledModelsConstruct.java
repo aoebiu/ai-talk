@@ -45,7 +45,7 @@ public class AssembledModelsConstruct {
                 case STREAMING_CHAT -> streamingChatModel = modelConfig;
                 case EMBEDDING -> embeddingModel = modelConfig;
                 case SCORING -> scoringModel = modelConfig;
-                case MODERATE -> moderationModel = modelConfig;
+                case MODERATION -> moderationModel = modelConfig;
                 default -> {}
             }
         }

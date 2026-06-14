@@ -13,7 +13,7 @@ public record AssembledModels(String name,  // 模型名称
                               Double minScore, // 检索最小相似度分数
                               Boolean inDB,
                               ModelConfig chatModel,
-                              ModelConfig moderateModel,
+                              ModelConfig moderationModel,
                               ModelConfig streamingChatModel,
                               ModelConfig embeddingModel,
                               ModelConfig scoringModel) {

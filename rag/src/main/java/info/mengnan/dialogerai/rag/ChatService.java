@@ -17,6 +17,7 @@ import dev.langchain4j.rag.content.aggregator.ReRankingContentAggregator;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import info.mengnan.dialogerai.common.param.ModelType;
 import info.mengnan.dialogerai.rag.injector.CapturingContentInjector;
 import info.mengnan.dialogerai.rag.injector.RagSourceStore;
 import dev.langchain4j.rag.query.router.DefaultQueryRouter;
@@ -40,9 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executor;
 
 import static dev.langchain4j.rag.query.router.LanguageModelQueryRouter.FallbackStrategy.DO_NOT_ROUTE;
 import static info.mengnan.dialogerai.common.param.ModelType.*;
@@ -55,28 +54,21 @@ public class ChatService {
     private final UniversalModelFactory modelFactory;
     private final DynamicEmbeddingStoreRegistry embeddingStoreRegistry;
     private final ModelConfigProvider modelConfigProvider;
-    private final KnowledgeBaseIndexResolver knowledgeBaseIndexResolver;
     private final RagSourceStore ragSourceStore;
+    private final Executor ragExecutor;
 
     public ChatService(ChatMemoryStore chatMemoryStore,
                        UniversalModelFactory modelFactory,
                        DynamicEmbeddingStoreRegistry embeddingStoreRegistry,
                        ModelConfigProvider modelConfigProvider,
-                       KnowledgeBaseIndexResolver knowledgeBaseIndexResolver,
-                       RagSourceStore ragSourceStore) {
+                       RagSourceStore ragSourceStore, Executor ragExecutor) {
         this.chatMemoryStore = chatMemoryStore;
         this.modelFactory = modelFactory;
         this.embeddingStoreRegistry = embeddingStoreRegistry;
         this.modelConfigProvider = modelConfigProvider;
-        this.knowledgeBaseIndexResolver = knowledgeBaseIndexResolver;
         this.ragSourceStore = ragSourceStore;
+        this.ragExecutor = ragExecutor;
     }
-
-    private final static ThreadPoolExecutor POOL_EXECUTOR = new ThreadPoolExecutor(
-            Runtime.getRuntime().availableProcessors(),
-            Runtime.getRuntime().availableProcessors() * 2, 2,
-            TimeUnit.MINUTES, new LinkedBlockingDeque<>(256),
-            new ThreadPoolExecutor.CallerRunsPolicy());
 
     /**
      * 流式RAG对话 - 使用回调处理器
@@ -134,20 +126,17 @@ public class ChatService {
                                                  Map<ToolSpecification, ToolExecutor> toolMap,
                                                  List<KnowledgeBaseIndexResolver.KbIndexRef> kbIndexRefs) {
         AiServices<AssistantUnique> builder = AiServices.builder(AssistantUnique.class);
+        Map<ModelType, ModelConfig> modelConfigMap = modelConfigProvider.loadModelConfigs(memberId);
 
         if (assembledModels.rag()) {
             DefaultRetrievalAugmentor.DefaultRetrievalAugmentorBuilder ragBuilder = DefaultRetrievalAugmentor.builder();
-            ragBuilder.executor(POOL_EXECUTOR);
+            ragBuilder.executor(ragExecutor);
 
             if (assembledModels.contentAggregator()) {
                 ContentAggregator contentAggregator = null;
 
                 if (assembledModels.scoringModel() != null) {
-                    ModelConfig scoringConfig = modelConfigProvider.findModel(
-                            memberId,
-                            assembledModels.scoringModel().getModelName(),
-                            SCORING);
-
+                    ModelConfig scoringConfig = modelConfigMap.get(SCORING);
                     if (scoringConfig != null) {
                         ScoringModel scoringModel = modelFactory.createScoringModel(scoringConfig);
                         contentAggregator = ReRankingContentAggregator.builder()
@@ -165,18 +154,14 @@ public class ChatService {
                 ragBuilder.queryTransformer(new DefaultQueryTransformer());
             }
 
-            // 配置创建合适的 QueryRouter
-            Map<ContentRetriever, String> contentRetrieverMap = buildContentRetrieverMap(memberId, kbIndexRefs, assembledModels);
+            Map<ContentRetriever, String> contentRetrieverMap = buildContentRetrieverMap(kbIndexRefs, modelConfigMap.get(EMBEDDING), assembledModels);
             QueryRouter queryRouter;
             if (contentRetrieverMap.isEmpty()) {
                 queryRouter = new DefaultQueryRouter();
             } else if (assembledModels.chatModel() == null) {
                 queryRouter = new DefaultQueryRouter(contentRetrieverMap.keySet());
             } else {
-                ModelConfig chatConfig = modelConfigProvider.findModel(
-                        memberId,
-                        assembledModels.chatModel().getModelName(),
-                        CHAT);
+                ModelConfig chatConfig = modelConfigMap.get(CHAT);
 
                 if (chatConfig != null) {
                     ChatModel chatModel = modelFactory.createChatModel(chatConfig);
@@ -193,11 +178,7 @@ public class ChatService {
         }
 
         if (assembledModels.streamingChatModel() != null) {
-            ModelConfig streamingChatConfig = modelConfigProvider.findModel(
-                    memberId,
-                    assembledModels.streamingChatModel().getModelName(),
-                    STREAMING_CHAT);
-
+            ModelConfig streamingChatConfig = modelConfigMap.get(STREAMING_CHAT);
             if (streamingChatConfig != null) {
                 StreamingChatModel streamingChatModel = modelFactory.createStreamingChatModel(streamingChatConfig);
                 builder.streamingChatModel(streamingChatModel);
@@ -205,25 +186,17 @@ public class ChatService {
         }
 
         if (assembledModels.chatModel() != null) {
-            ModelConfig chatConfig = modelConfigProvider.findModel(
-                    memberId,
-                    assembledModels.chatModel().getModelName(),
-                    CHAT);
-
+            ModelConfig chatConfig = modelConfigMap.get(CHAT);
             if (chatConfig != null) {
                 ChatModel chatModel = modelFactory.createChatModel(chatConfig);
                 builder.chatModel(chatModel);
             }
         }
 
-        if (assembledModels.moderateModel() != null) {
-            ModelConfig moderateConfig = modelConfigProvider.findModel(
-                    memberId,
-                    assembledModels.moderateModel().getModelName(),
-                    MODERATE);
-
-            if (moderateConfig != null) {
-                ModerationModel moderationModel = modelFactory.createModerationModel(moderateConfig);
+        if (assembledModels.moderationModel() != null) {
+            ModelConfig moderationConfig = modelConfigMap.get(MODERATION);
+            if (moderationConfig != null) {
+                ModerationModel moderationModel = modelFactory.createModerationModel(moderationConfig);
                 builder.moderationModel(moderationModel);
             } else {
                 builder.moderationModel(new DisabledModerationModel());
@@ -246,8 +219,8 @@ public class ChatService {
      * 构建 ContentRetriever Map
      * 为每个 ES 索引动态创建 EmbeddingStore 和 ContentRetriever
      */
-    public Map<ContentRetriever, String> buildContentRetrieverMap(Long memberId,
-                                                                  List<KbIndexRef> kbIndexes,
+    public Map<ContentRetriever, String> buildContentRetrieverMap(List<KbIndexRef> kbIndexes,
+                                                                  ModelConfig embeddingConfig,
                                                                   AssembledModels assembledModels) {
         Map<ContentRetriever, String> map = new HashMap<>();
 
@@ -255,12 +228,6 @@ public class ChatService {
             log.warn("No embedding model configured");
             return map;
         }
-
-        ModelConfig embeddingConfig = modelConfigProvider.findModel(
-                memberId,
-                assembledModels.embeddingModel().getModelName(),
-                EMBEDDING);
-
         if (embeddingConfig == null) {
             log.warn("Embedding model config not found in database: {}",
                     assembledModels.embeddingModel().getModelName());

@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 模型配置服务
@@ -56,6 +58,16 @@ public class ModelConfigService {
             return null;
         }
     }
+
+    public Map<ModelType, ModelConfig> loadModelConfigs(Long memberId) {
+        return chatApiKeyService.findAll(memberId).stream()
+                .collect(Collectors.toMap(
+                        chatApiKey -> ModelType.valueOf(chatApiKey.getKeyType().toUpperCase()),
+                        this::buildModelConfig,
+                        (existing, replacement) -> existing
+                ));
+    }
+
 
     private ModelConfig buildModelConfig(ChatApiKey apiKey) {
         ModelConfig config = new ModelConfig();

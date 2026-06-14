@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 public class DirectModelInvoker {
 
     private final UniversalModelFactory modelFactory;
-    private final ModelConfigProvider modelConfigProvider;
+    private final SingleModelConfigProvider singleModelConfigProvider;
     private final PromptTemplateManager promptTemplateManager;
     private final DefaultModelConfig defaultModelConfig;
 
@@ -36,11 +36,11 @@ public class DirectModelInvoker {
     private static final double BACKOFF_MULTIPLIER = 2.0;
 
     public DirectModelInvoker(UniversalModelFactory modelFactory,
-                              ModelConfigProvider modelConfigProvider,
+                              SingleModelConfigProvider singleModelConfigProvider,
                               PromptTemplateManager promptTemplateManager,
                               DefaultModelConfig defaultModelConfig) {
         this.modelFactory = modelFactory;
-        this.modelConfigProvider = modelConfigProvider;
+        this.singleModelConfigProvider = singleModelConfigProvider;
         this.promptTemplateManager = promptTemplateManager;
         this.defaultModelConfig = defaultModelConfig;
     }
@@ -71,7 +71,7 @@ public class DirectModelInvoker {
     private String directInvokeInternal(String invokeSource, String templateName, String promptText) {
         ModelConfig modelConfig = null;
         try {
-            modelConfig = modelConfigProvider.findModel(null, defaultModelConfig.getModelName(), ModelType.CHAT);
+            modelConfig = singleModelConfigProvider.findModel(null, defaultModelConfig.getModelName(), ModelType.CHAT);
             if (modelConfig == null) {
                 throw new IllegalArgumentException("No default model configuration found");
             }
@@ -121,7 +121,7 @@ public class DirectModelInvoker {
      * @return 图片内容的文本描述
      */
     private String imageToTextFromBase64(String base64ImageData, String promptTemplate, String mimeType) {
-        ModelConfig modelConfig = modelConfigProvider.findModel(null, defaultModelConfig.getModelName(), ModelType.CHAT);
+        ModelConfig modelConfig = singleModelConfigProvider.findModel(null, defaultModelConfig.getModelName(), ModelType.CHAT);
         if (modelConfig == null) {
             throw new IllegalArgumentException("No default image model configuration found");
         }

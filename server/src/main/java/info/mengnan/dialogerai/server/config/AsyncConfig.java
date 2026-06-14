@@ -5,17 +5,29 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * 异步配置：启用 @Async 注解，并为文档处理流水线提供专用线程池。
+ * 异步配置
  */
 @Configuration
 @EnableAsync
 public class AsyncConfig implements WebMvcConfigurer {
+
+    @Bean("ragExecutor")
+    public Executor ragExecutor() {
+        return new ThreadPoolExecutor(
+                Runtime.getRuntime().availableProcessors(),
+                Runtime.getRuntime().availableProcessors() * 2, 2,
+                TimeUnit.MINUTES, new LinkedBlockingDeque<>(256),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+    }
 
     /**
      * 文档处理专用线程池。

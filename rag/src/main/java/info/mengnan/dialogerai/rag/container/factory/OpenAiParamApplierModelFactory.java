@@ -20,7 +20,7 @@ public class OpenAiParamApplierModelFactory extends OpenAiParamApplier
             case CHAT           -> buildChatModel(config).build();
             case STREAMING_CHAT -> buildStreamingChatModel(config).build();
             case EMBEDDING      -> buildEmbeddingModel(config).build();
-            case MODERATE       -> buildModerationModel(config).build();
+            case MODERATION     -> buildModerationModel(config).build();
             case IMAGE          -> buildImageModel(config).build();
             default -> throw new UnsupportedOperationException(notSupported(modelType));
         };
